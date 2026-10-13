@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Nails</string>
+    <!-- AdMob App ID Fallback: Used if build.gradle resValue fails to set it.
+         In debug builds, this is overridden with Google's official test app ID.
+         In release builds, this should be overridden with production ID from .env. -->
+    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>
+</resources>

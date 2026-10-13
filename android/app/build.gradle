@@ -1,0 +1,275 @@
+apply plugin: "com.android.application"
+apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "com.facebook.react"
+
+// Debug → .env.debug (test ads only). Release → .env (production IDs).
+project.ext.envConfigFiles = [
+    debug  : ".env.debug",
+    release: ".env",
+]
+
+apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
+
+// Google official sample App ID — debug builds only, never production IDs.
+def admobTestAppId = "ca-app-pub-3940256099942544~3347511713"
+
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+
+/**
+ * This is the configuration block to customize your React Native Android app.
+ * By default you don't need to apply any configuration, just uncomment the lines you need.
+ */
+react {
+    /* Folders */
+    //   The root of your project, i.e. where "package.json" lives. Default is '../..'
+    // root = file("../../")
+    //   The folder where the react-native NPM package is. Default is ../../node_modules/react-native
+    // reactNativeDir = file("../../node_modules/react-native")
+    //   The folder where the react-native Codegen package is. Default is ../../node_modules/@react-native/codegen
+    // codegenDir = file("../../node_modules/@react-native/codegen")
+    //   The cli.js file which is the React Native CLI entrypoint. Default is ../../node_modules/react-native/cli.js
+    // cliFile = file("../../node_modules/react-native/cli.js")
+
+    /* Variants */
+    //   The list of variants to that are debuggable. For those we're going to
+    //   skip the bundling of the JS bundle and the assets. Default is "debug", "debugOptimized".
+    //   If you add flavors like lite, prod, etc. you'll have to list your debuggableVariants.
+    // debuggableVariants = ["liteDebug", "liteDebugOptimized", "prodDebug", "prodDebugOptimized"]
+
+    /* Bundling */
+    //   A list containing the node command and its flags. Default is just 'node'.
+    // nodeExecutableAndArgs = ["node"]
+    //
+    //   The command to run when bundling. By default is 'bundle'
+    // bundleCommand = "ram-bundle"
+    //
+    //   The path to the CLI configuration file. Default is empty.
+    // bundleConfig = file(../rn-cli.config.js)
+    //
+    //   The name of the generated asset file containing your JS bundle
+    // bundleAssetName = "MyApplication.android.bundle"
+    //
+    //   The entry file for bundle generation. Default is 'index.android.js' or 'index.js'
+    // entryFile = file("../js/MyApplication.android.js")
+    //
+    //   A list of extra flags to pass to the 'bundle' commands.
+    //   See https://github.com/react-native-community/cli/blob/main/docs/commands.md#bundle
+    // extraPackagerArgs = []
+
+    /* Hermes Commands */
+    //   The hermes compiler command to run. By default it is 'hermesc'
+    // hermesCommand = "$rootDir/my-custom-hermesc/bin/hermesc"
+    //
+    //   The list of flags to pass to the Hermes compiler. By default is "-O", "-output-source-map"
+    // hermesFlags = ["-O", "-output-source-map"]
+
+    /* Autolinking */
+    autolinkLibrariesWithApp()
+}
+
+/**
+ * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
+ */
+def enableProguardInReleaseBuilds = true
+
+/**
+ * The preferred build flavor of JavaScriptCore (JSC)
+ *
+ * For example, to use the international variant, you can use:
+ * `def jscFlavor = io.github.react-native-community:jsc-android-intl:2026004.+`
+ *
+ * The international variant includes ICU i18n library and necessary data
+ * allowing to use e.g. `Date.toLocaleString` and `String.localeCompare` that
+ * give correct results when using with locales other than en-US. Note that
+ * this variant is about 6MiB larger per architecture than default.
+ */
+def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
+
+def catalogTilesSrc = rootProject.file('../catalog-packs/tiles')
+def catalogTilesDest = file('src/main/assets/catalog/tiles')
+
+tasks.register('syncBaseCatalogTiles', Copy) {
+    group = 'catalog'
+    description = 'Copy Home category tiles into the base APK assets'
+    from catalogTilesSrc
+    into catalogTilesDest
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    doFirst {
+        if (!catalogTilesSrc.directory) {
+            throw new GradleException(
+                "Missing ${catalogTilesSrc}. Encode output must exist at catalog-packs/tiles.")
+        }
+    }
+}
+
+tasks.register('syncDebugCatalogPacks', Copy) {
+    group = 'catalog'
+    description = 'Embed PAD catalog packs in debug APKs for local development'
+    into file('src/debug/assets/catalog_debug')
+    from(rootProject.file('../catalog-packs/thumbs')) {
+        into 'thumbs'
+    }
+    from(rootProject.file('../catalog-packs/full')) {
+        into 'full'
+    }
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    doFirst {
+        def thumbs = rootProject.file('../catalog-packs/thumbs')
+        def full = rootProject.file('../catalog-packs/full')
+        if (!thumbs.directory || !full.directory) {
+            throw new GradleException(
+                "Missing catalog-packs/thumbs or catalog-packs/full on disk.")
+        }
+    }
+}
+
+android {
+    ndkVersion rootProject.ext.ndkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+    compileSdk rootProject.ext.compileSdkVersion
+
+    namespace "com.nails724xone"
+    assetPacks = [':thumbs', ':full']
+    defaultConfig {
+        applicationId "com.nails724xone"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0"
+        resValue "string", "admob_app_id", admobTestAppId
+    }
+    signingConfigs {
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile file(keystoreProperties['MYAPP_RELEASE_STORE_FILE'])
+                storePassword keystoreProperties['MYAPP_RELEASE_STORE_PASSWORD']
+                keyAlias keystoreProperties['MYAPP_RELEASE_KEY_ALIAS']
+                keyPassword keystoreProperties['MYAPP_RELEASE_KEY_PASSWORD']
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+            resValue "string", "admob_app_id", admobTestAppId
+            println("DEBUG BUILD: AdMob App ID = ${admobTestAppId}")
+        }
+        release {
+            signingConfig keystorePropertiesFile.exists()
+                ? signingConfigs.release
+                : signingConfigs.debug
+            minifyEnabled enableProguardInReleaseBuilds
+            shrinkResources enableProguardInReleaseBuilds
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+
+            // Do NOT embed full native debug symbols (.so.sym) in the AAB.
+            // They are metadata used only for native crash symbolication in
+            // Play Console — they are never delivered to users and do not
+            // affect app behaviour, but they were the single largest chunk of
+            // the uploaded .aab (~90 MB uncompressed across all ABIs).
+            // Re-enable with 'SYMBOL_TABLE' (small) or 'FULL' if you need
+            // native crash symbolication in Play Console.
+            ndk {
+                debugSymbolLevel 'NONE'
+            }
+            
+            // CRITICAL: Get AdMob App ID from environment (.env).
+            // Fail the build rather than ship a release with an empty App ID —
+            // an empty value makes the Google Mobile Ads SDK crash on launch.
+            //
+            // NOTE: buildTypes closures are evaluated at configuration time for
+            // EVERY build (including debug), so we must NOT throw here — that
+            // would break `installDebug`. Instead we defer the hard failure to
+            // taskGraph.whenReady, which only fires for the tasks actually run.
+            def admobAppIdFromEnv = project.env.get("ADMOB_APP_ID")
+            resValue "string", "admob_app_id", admobAppIdFromEnv?.trim() ? admobAppIdFromEnv : ""
+
+            gradle.taskGraph.whenReady { graph ->
+                // Match actual release build tasks (assembleRelease, bundleRelease,
+                // mergeReleaseResources, etc.) but NOT "clean" tasks — `clean` pulls in
+                // cleanup tasks like `cleanBundleReleaseJsAndAssets` whose name also
+                // contains "Release", which would otherwise make a plain `./gradlew clean`
+                // look like a release build and trip these checks.
+                def buildingRelease = graph.allTasks.any { task ->
+                    task.project == project &&
+                    task.name =~ /(?i)release/ &&
+                    !(task.name =~ /(?i)^clean/)
+                }
+                if (buildingRelease && !admobAppIdFromEnv?.trim()) {
+                    throw new GradleException(
+                        "ADMOB_APP_ID is missing from .env — refusing to build a release with an empty " +
+                        "AdMob App ID (the Google Mobile Ads SDK would crash on launch). " +
+                        "Ensure a .env file exists at the project root with ADMOB_APP_ID set.")
+                }
+                // CRITICAL: Without android/keystore.properties, signingConfigs.release has no
+                // storeFile/passwords set, so Gradle silently falls back to the debug keystore
+                // (see signingConfig above). That produces a release AAB that builds fine but is
+                // signed with the throwaway debug key — Play Console then rejects it with a
+                // "signed with the wrong key" error. Fail loudly instead of shipping that.
+                if (buildingRelease && !keystorePropertiesFile.exists()) {
+                    throw new GradleException(
+                        "android/keystore.properties is missing — refusing to build a release " +
+                        "signed with the debug keystore (Play Console will reject it as signed " +
+                        "with the wrong key). Create android/keystore.properties with " +
+                        "MYAPP_RELEASE_STORE_FILE, MYAPP_RELEASE_STORE_PASSWORD, " +
+                        "MYAPP_RELEASE_KEY_ALIAS and MYAPP_RELEASE_KEY_PASSWORD.")
+                }
+                if (buildingRelease) {
+                    println("RELEASE BUILD: AdMob App ID = ${admobAppIdFromEnv}")
+                }
+            }
+        }
+    }
+}
+
+afterEvaluate {
+    tasks.named('preBuild').configure { dependsOn('syncBaseCatalogTiles') }
+    tasks.named('preDebugBuild').configure { dependsOn('syncDebugCatalogPacks') }
+}
+
+dependencies {
+    // The version of react-native is set by the React Native Gradle Plugin
+    implementation("com.facebook.react:react-android")
+    implementation("com.google.android.play:asset-delivery:2.3.0")
+
+    if (hermesEnabled.toBoolean()) {
+        implementation("com.facebook.react:hermes-android")
+    } else {
+        implementation jscFlavor
+    }
+}
+
+// Bundle ONLY the icon fonts actually imported in the JS (verified by grep over
+// src/). react-native-vector-icons copies all 20+ .ttf files by default (~4 MB);
+// this ships just the 10 sets the app uses. Every user's download shrinks and no
+// rendered glyph changes. If you add an <Icon set> import, add its .ttf here.
+project.ext.vectoricons = [
+    iconFontNames: [
+        'AntDesign.ttf',
+        'Entypo.ttf',
+        'Feather.ttf',
+        'FontAwesome.ttf',
+        'FontAwesome6_Brands.ttf',
+        'FontAwesome6_Regular.ttf',
+        'FontAwesome6_Solid.ttf',
+        'Fontisto.ttf',
+        'Ionicons.ttf',
+        'MaterialCommunityIcons.ttf',
+        'MaterialIcons.ttf',
+        'SimpleLineIcons.ttf',
+    ]
+]
+
+apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
+

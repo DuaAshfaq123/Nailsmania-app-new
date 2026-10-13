@@ -1,0 +1,243 @@
+diff --git a/node_modules/react-native-restart/android/src/main/java/com/reactnativerestart/RestartModule.java b/node_modules/react-native-restart/android/src/main/java/com/reactnativerestart/RestartModule.java
+index 6bc58df..6738e33 100644
+--- a/node_modules/react-native-restart/android/src/main/java/com/reactnativerestart/RestartModule.java
++++ b/node_modules/react-native-restart/android/src/main/java/com/reactnativerestart/RestartModule.java
+@@ -1,124 +1,179 @@
+ package com.reactnativerestart;
+ 
+ import android.app.Activity;
++import android.app.Application;
++import android.content.Context;
+ import android.os.Handler;
+ import android.os.Looper;
+ import com.facebook.react.ReactApplication;
+-import com.facebook.react.ReactInstanceManager;
+-import com.facebook.react.bridge.LifecycleEventListener;
++import com.facebook.react.ReactHost;
++import com.facebook.react.bridge.Promise;
+ import com.facebook.react.bridge.ReactApplicationContext;
+ import com.facebook.react.bridge.ReactContextBaseJavaModule;
+ import com.facebook.react.bridge.ReactMethod;
+ import com.jakewharton.processphoenix.ProcessPhoenix;
+-import com.facebook.react.bridge.Promise;
+-
+ 
++/**
++ * Patched for Mehandi724xONE — see patches/react-native-restart+0.0.28.patch.
++ *
++ * The published module resolves a ReactInstanceManager and calls
++ * recreateReactContextInBackground(), falling back to Activity.recreate() when that
++ * throws. Neither path works on this app:
++ *
++ *  - The app runs the New Architecture bridgeless (newArchEnabled=true, MainApplication
++ *    only overrides `reactHost`). ReactApplication.getReactNativeHost() therefore throws
++ *    RuntimeException("You should not use ReactNativeHost directly in the New
++ *    Architecture"), so resolveInstanceManager() always fails.
++ *  - The Activity.recreate() fallback recreates the Activity but keeps the same JS
++ *    context alive. That is fatal here, because the only reason this app restarts is to
++ *    apply an I18nManager RTL flip: I18nManager.js reads isRTL from native constants ONCE
++ *    at module import (`const i18nConstants = getI18nManagerConstants()`), so a stale JS
++ *    context keeps reporting the OLD direction and the layout never flips.
++ *
++ * The replacement is two-tier, fastest first:
++ *
++ *  1. ReactHost.reload() recreates the React instance in place. The process survives, so
++ *     there is no Application.onCreate, no native module re-initialisation and no cold
++ *     start — but the JS context is new, which is all a direction flip actually requires.
++ *  2. ProcessPhoenix (already a declared dependency of this library, previously unused)
++ *     kills and relaunches the process. Used when there is no ReactHost to reload, when the
++ *     reload throws, and whenever the caller explicitly asks via HARD_RESTART_REASON.
++ *
++ * The caller is expected to verify the outcome and re-request tier 2 if tier 1 did not
++ * take; LanguageContext does exactly that on the next launch.
++ */
+ public class RestartModule extends ReactContextBaseJavaModule {
+ 
+-    private static final String REACT_APPLICATION_CLASS_NAME = "com.facebook.react.ReactApplication";
+-    private static final String REACT_NATIVE_HOST_CLASS_NAME = "com.facebook.react.ReactNativeHost";
+     private static String restartReason = null;
+ 
+-    private LifecycleEventListener mLifecycleEventListener = null;
+-
+     public RestartModule(ReactApplicationContext reactContext) {
+         super(reactContext);
+     }
+ 
+-    private void loadBundleLegacy() {
+-        final Activity currentActivity = getCurrentActivity();
+-        if (currentActivity == null) {
+-            return;
++    /**
++     * The SharedPreferences file I18nUtil keeps the allowRTL/forceRTL flags in. The name is
++     * a private constant inside com.facebook.react.modules.i18nmanager.I18nUtil
++     * (SHARED_PREFS_NAME) and has to be repeated here; see flushLayoutDirectionPrefs.
++     */
++    private static final String I18N_PREFS_NAME =
++            "com.facebook.react.modules.i18nmanager.I18nUtil";
++
++    /**
++     * Forces the pending layout-direction preference to disk, synchronously.
++     *
++     * I18nUtil.forceRTL writes with editor.apply(), which updates the in-memory map at once
++     * but hands the disk write to a background thread. ProcessPhoenix ends the process with
++     * Runtime.exit(), which runs no Activity lifecycle callback and therefore never reaches
++     * the QueuedWork.waitToFinish() that normally drains those pending writes — so the flag
++     * can be lost outright and the app relaunches in the OLD direction.
++     *
++     * An empty commit() on the same file fixes that deterministically: commit() serialises
++     * the entire current in-memory map on the CALLING thread and blocks until it lands, and
++     * that map already contains the value apply() staged. This is what lets the JS side
++     * restart immediately instead of guessing at a sleep long enough for the race to settle.
++     */
++    private void flushLayoutDirectionPrefs(Context context) {
++        try {
++            context.getSharedPreferences(I18N_PREFS_NAME, Context.MODE_PRIVATE)
++                    .edit()
++                    .commit();
++        } catch (Throwable t) {
++            // A failed flush is not worth blocking the restart over — the in-memory value is
++            // still correct for this process, and the app self-heals on the next launch.
+         }
+-
+-        currentActivity.runOnUiThread(new Runnable() {
+-            @Override
+-            public void run() {
+-                currentActivity.recreate();
+-            }
+-        });
+     }
+ 
+-    private void loadBundle() {
+-        clearLifecycleEventListener();
++    /**
++     * Callers pass this exact reason to demand a full process restart and skip the fast
++     * path. The JS side uses it for its fallback attempt — see LanguageContext.
++     */
++    public static final String HARD_RESTART_REASON = "hard-restart";
++
++    /**
++     * Recreates the React instance in place, WITHOUT killing the process.
++     *
++     * This is the fast path, and it is sufficient for a layout-direction change because
++     * every consumer of the flag re-reads it rather than caching it across a reload:
++     * I18nManagerModule.getConstants() reads I18nUtil live, so the new JS context sees the
++     * new direction, and ReactSurfaceImpl.updateLayoutSpecs re-reads it too — which
++     * ReactSurfaceView.onMeasure calls, and mounting the reloaded tree into the surface
++     * necessarily triggers a measure pass. No process death, so no Application.onCreate,
++     * no native module re-initialisation and no cold start.
++     *
++     * @return true if a reload was successfully requested; false if this build has no
++     *     ReactHost to reload, in which case the caller falls back to a process restart.
++     */
++    private boolean reloadReactInstance(final Activity activity) {
+         try {
+-            final ReactInstanceManager instanceManager = resolveInstanceManager();
+-            if (instanceManager == null) {
+-                return;
++            final Application application = activity.getApplication();
++            if (!(application instanceof ReactApplication)) {
++                return false;
++            }
++            // getReactHost(), NOT getReactNativeHost(): the latter throws outright under
++            // the New Architecture. A null host means an old-architecture build, which has
++            // nothing to reload here and belongs on the ProcessPhoenix path.
++            final ReactHost reactHost = ((ReactApplication) application).getReactHost();
++            if (reactHost == null) {
++                return false;
+             }
+-
+             new Handler(Looper.getMainLooper()).post(new Runnable() {
+                 @Override
+                 public void run() {
+                     try {
+-                        instanceManager.recreateReactContextInBackground();
++                        reactHost.reload("react-native-restart");
+                     } catch (Throwable t) {
+-                        loadBundleLegacy();
++                        // The reload itself failed after we had already committed to it, so
++                        // the only way left to reach a correct state is the hard restart.
++                        ProcessPhoenix.triggerRebirth(activity);
+                     }
+                 }
+             });
+-
++            return true;
+         } catch (Throwable t) {
+-            loadBundleLegacy();
++            return false;
+         }
+     }
+ 
+-    private static ReactInstanceHolder mReactInstanceHolder;
+-
+-    static ReactInstanceManager getReactInstanceManager() {
+-        if (mReactInstanceHolder == null) {
+-            return null;
+-        }
+-        return mReactInstanceHolder.getReactInstanceManager();
+-    }
+-
+-    private ReactInstanceManager resolveInstanceManager() throws NoSuchFieldException, IllegalAccessException {
+-        ReactInstanceManager instanceManager = getReactInstanceManager();
+-        if (instanceManager != null) {
+-            return instanceManager;
+-        }
+-
++    private void loadBundle(String reason) {
+         final Activity currentActivity = getCurrentActivity();
+         if (currentActivity == null) {
+-            return null;
++            return;
+         }
+ 
+-        ReactApplication reactApplication = (ReactApplication) currentActivity.getApplication();
+-        instanceManager = reactApplication.getReactNativeHost().getReactInstanceManager();
++        // Done on both paths. The reload path does not strictly need it — apply() has
++        // already updated the in-memory map that I18nUtil reads, and the process survives —
++        // but it costs one synchronous write and means the flag is durable no matter which
++        // path is taken or how the app is closed afterwards.
++        flushLayoutDirectionPrefs(currentActivity.getApplicationContext());
+ 
+-        return instanceManager;
+-    }
+-
+-
+-    private void clearLifecycleEventListener() {
+-        if (mLifecycleEventListener != null) {
+-            getReactApplicationContext().removeLifecycleEventListener(mLifecycleEventListener);
+-            mLifecycleEventListener = null;
++        if (!HARD_RESTART_REASON.equals(reason) && reloadReactInstance(currentActivity)) {
++            return;
+         }
++
++        ProcessPhoenix.triggerRebirth(currentActivity);
+     }
+ 
+     @ReactMethod
+     public void Restart(String reason) {
+         restartReason = reason;
+-        loadBundle();
++        loadBundle(reason);
+     }
+ 
+     @ReactMethod
+     public void restart(String reason) {
+         restartReason = reason;
+-        loadBundle();
++        loadBundle(reason);
+     }
+ 
+     @ReactMethod
+     public void getReason(Promise promise) {
+         try {
+             promise.resolve(restartReason);
+-        } catch(Exception e) {
++        } catch (Exception e) {
+             promise.reject("Create Event Error", e);
+         }
+     }
+ 
+-
+     @Override
+     public String getName() {
+         return "RNRestart";

@@ -1,0 +1,30 @@
+
+def packSourceName = catalogPackSource
+def sourceDir = rootProject.file("../catalog-packs/${packSourceName}")
+def destDir = file("src/main/assets")
+
+tasks.register('syncCatalogPackAssets', Copy) {
+    group = 'catalog'
+    description = "Copy catalog-packs/${packSourceName} into this asset pack"
+    from sourceDir
+    into destDir
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    doFirst {
+        if (!sourceDir.directory) {
+            throw new GradleException(
+                "Missing ${sourceDir}. catalog-packs/${packSourceName} is required on disk.")
+        }
+    }
+}
+
+afterEvaluate {
+    tasks.matching { task ->
+        def n = task.name.toLowerCase()
+        n.contains('assetpack') || n.contains('bundle') || n.contains('package') ||
+            n.contains('assemble') || n == 'prebuild' || n.contains('merge')
+    }.configureEach { task ->
+        if (task.name != 'syncCatalogPackAssets') {
+            task.dependsOn('syncCatalogPackAssets')
+        }
+    }
+}

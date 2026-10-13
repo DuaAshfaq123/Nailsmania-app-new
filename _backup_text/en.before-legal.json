@@ -1,0 +1,733 @@
+{
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "save": "Save",
+    "retry": "Retry",
+    "loading": "Loading...",
+    "openSettings": "Open Settings",
+    "notNow": "Not now",
+    "close": "Close",
+    "somethingWentWrong": "Something went wrong. Please try again.",
+    "greeting": "Hi, {{name}}",
+    "appLogoLabel": "Nails app logo",
+    "appTagline": "Discover beautiful designs",
+    "searchPlaceholder": "Search designs",
+    "searchRecentLabel": "Recent",
+    "searchTrendingLabel": "Trending",
+    "searchCategoriesLabel": "Categories",
+    "searchNoResultsTitle": "No results found",
+    "searchNoResultsSubtitle": "Try Bridal, Acrylic, or French Tips",
+    "goBack": "Go back",
+    "undo": "Undo",
+    "searchClearAll": "Clear all",
+    "searchRemoveRecent": "Remove {{term}} from recent searches",
+    "tabHome": "Home",
+    "tabSaved": "Saved",
+    "tabMore": "More",
+    "allChip": "All"
+  },
+  "profile": {
+    "editProfileTitle": "Edit Profile",
+    "nameLabel": "Name",
+    "namePlaceholder": "Your name",
+    "nameRequired": "Name can't be empty",
+    "emailLabel": "Email",
+    "emailImmutableNote": "Email can't be changed",
+    "changePhoto": "Change Photo",
+    "saveSuccess": "Profile updated",
+    "saveFailed": "Failed to update profile. Please try again.",
+    "photoUpdateFailed": "Failed to update photo. Please try again.",
+    "nameHint": "3–18 letters. Spaces allowed between words.",
+    "nameError": {
+      "required": "Please enter your name.",
+      "tooShort": "Name must be at least 3 characters.",
+      "tooLong": "Name can't be longer than 18 characters.",
+      "leadingSpace": "Name can't start with a space.",
+      "trailingSpace": "Name can't end with a space.",
+      "doubleSpace": "Use only one space between words.",
+      "invalidChars": "Name can only contain letters and single spaces — no numbers or symbols."
+    }
+  },
+  "upload": {
+    "submitSuccess": "Design saved privately on this device.",
+    "cameraPermissionDeniedTitle": "Camera access needed",
+    "cameraPermissionDeniedMessage": "Allow camera access in Settings to take photos for your design uploads.",
+    "cameraPermissionRequestFailed": "Couldn't request camera access. Please try again.",
+    "captureFailed": "Failed to capture photo. Please try again.",
+    "noCameraDevice": "No camera available on this device.",
+    "captureButton": "Capture photo",
+    "sourceTitle": "Your Designs",
+    "sourceSubtitle": "Add personal designs that stay only on this device",
+    "addDesignSectionTitle": "Add a design",
+    "chooseCameraLabel": "Take Photo",
+    "chooseGalleryLabel": "Choose from Gallery",
+    "galleryPickFailed": "Failed to select image. Please try again.",
+    "previewTitle": "Preview",
+    "retakeLabel": "Change Photo",
+    "nextLabel": "Continue",
+    "discardDesignTitle": "Discard Design",
+    "discardDesignMessage": "Are you sure you want to discard this design?",
+    "discardDesignConfirm": "Discard",
+    "categoryTitle": "Select Category",
+    "categorySubtitle": "Choose the category that best fits your design",
+    "submitLabel": "Save",
+    "saveLocallyLabel": "Save locally",
+    "guidanceLabel": "Guidance",
+    "guidanceOptional": "(optional)",
+    "guidanceHint": "Add tips or instructions for people trying this design.",
+    "guidancePlaceholder": "e.g. Apply a thin base coat first and cure for 60 seconds. Finish with a glossy top coat.",
+    "guidanceCounter": "{{used}}/{{max}}",
+    "guidanceError": {
+      "tooLong": "Guidance can't be longer than {{max}} characters."
+    },
+    "submitFailed": "Failed to save your design. Please try again.",
+    "imageTooLarge": "This image is too large even after compression. Please try a different photo.",
+    "missingRequirements": "Please select an image and a category before submitting.",
+    "uploadTabLabel": "My Designs",
+    "viewGuidelines": "View guidelines",
+    "myDesignsTitle": "My Designs",
+    "myDesignsEmptyTitle": "No designs yet",
+    "myDesignsEmptySubtitle": "Photos you add from your camera or gallery will appear here and stay private.",
+    "myDesignsLoadErrorTitle": "Couldn't load your designs",
+    "myDesignsLoadErrorSubtitle": "Pull down to try again",
+    "deleteDesignLabel": "Delete design",
+    "deleteDesignTitle": "Delete Design",
+    "deleteDesignMessage": "This permanently removes the local copy of this design. This cannot be undone.",
+    "deleteDesignConfirm": "Delete",
+    "deleteDesignSuccess": "Design deleted",
+    "deleteDesignFailed": "Couldn't delete the design. Please try again.",
+    "addCategoryLabel": "Add New",
+    "newCategoryTitle": "New Category",
+    "newCategorySubtitle": "Create a category for your design.",
+    "newCategoryPlaceholder": "e.g. Minimal Floral",
+    "newCategoryHint": "Letters and numbers, 3-24 characters.",
+    "newCategoryCreate": "Create Category",
+    "newCategoryCreated": "\"{{name}}\" created",
+    "newCategoryFailed": "Couldn't create the category. Please try again.",
+    "categoryError": {
+      "required": "Please enter a category name.",
+      "tooShort": "Name must be at least {{min}} characters.",
+      "tooLong": "Name can't be longer than {{max}} characters.",
+      "invalidChars": "Use letters and numbers only, separated by single spaces.",
+      "duplicate": "That category already exists."
+    },
+    "editDesignTitle": "Edit Design",
+    "editDesignLabel": "Edit design",
+    "editChangeImage": "Change Image",
+    "editSuccess": "Design updated",
+    "editFailed": "Couldn't update the design. Please try again.",
+    "guidanceBadge": "Guidance",
+    "guidanceSheetTitle": "Your Guidance",
+    "guidanceNone": "No guidance added to this design."
+  },
+  "settings": {
+    "accountSectionTitle": "Account",
+    "heroTitle": "Settings",
+    "heroSubtitle": "Personalize your experience",
+    "appearanceSectionTitle": "Appearance",
+    "languageSectionTitle": "Language",
+    "generalSectionTitle": "General",
+    "supportSectionTitle": "Support",
+    "themeSystemLabel": "System Default",
+    "themeLightLabel": "Light Mode",
+    "themeDarkLabel": "Dark Mode",
+    "languageEnglishLabel": "English",
+    "languageUrduLabel": "اردو",
+    "languageArabicLabel": "العربية",
+    "languageRestartTitle": "Restarting the app",
+    "languageRestartMessage": "The app will reopen to apply the new layout direction.",
+    "aboutUsLabel": "About Us",
+    "termsLabel": "Terms & Conditions",
+    "privacyLabel": "Privacy & Policy",
+    "feedbackLabel": "Feedback",
+    "shareAppLabel": "Share App"
+  },
+  "guidelines": {
+    "notFoundTitle": "Guidelines not found",
+    "notFoundSubtitle": "We couldn't find guidelines for this category.",
+    "titleTemplate": "{{category}} Design Guidelines",
+    "photoQualityHeading": "Photo Quality",
+    "photoQualityBody": "Use a well-lit, in-focus photo. Natural daylight works best — avoid heavy shadows, blur, or filters that change the true color of the design.",
+    "whatToIncludeHeading": "What to Include",
+    "whatToIncludeBody": "Show the full design clearly, with the nails fully visible in frame. A close-up detail shot is welcome as a separate submission.",
+    "whatToAvoidHeading": "What to Avoid",
+    "whatToAvoidBody": "No watermarks, logos, or text overlays. Please avoid submitting duplicate or near-duplicate photos of the same design."
+  },
+  "support": {
+    "title": "Support",
+    "menuLabel": "Contact Us",
+    "introTitle": "How can we help?",
+    "introBody": "We're here for anything that isn't working the way you expect — designs that won't load or download, saved designs going missing, or feedback on the app.",
+    "introTipsTitle": "Before you get in touch",
+    "introTip1": "Pull down to refresh the screen — most loading issues clear on a retry.",
+    "introTip2": "Check your internet connection; designs are loaded online.",
+    "introTip3": "If a problem persists, tell us your device model and what you tapped just before it happened.",
+    "responseNote": "We read every message and usually reply within 2–3 working days.",
+    "emailLabel": "Email us at",
+    "contactButton": "Send an Email",
+    "emailSubject": "Nails App Support",
+    "noEmailApp": "No email app found. You can copy the address above instead.",
+    "phoneLabel": "Call us on",
+    "callButton": "Call Support",
+    "noPhoneApp": "No dialer app found. You can copy the number above instead."
+  },
+  "legal": {
+    "aboutUsTitle": "About Us",
+    "privacyTitle": "Privacy & Policy",
+    "termsTitle": "Terms & Conditions",
+    "aboutUsText": "\nWelcome to Nails App - your gallery of nail design inspiration, celebrating the art, culture, and tradition of nails from around the world!\n\nOur Journey:\nNails App was born from a passion for the intricate beauty and cultural significance of nail designs. We set out to build a place where that beauty is easy to browse, save, and carry with you whenever you need inspiration.\n\nOur Purpose:\nAt Nails App, our mission is simple: help you find the perfect nail design for any occasion, quickly and beautifully. We aim to make discovering and revisiting your favorite designs effortless, wherever you are.\n\nOur Commitment:\nWe're committed to providing a well-organized, high-quality library of nail designs, thoughtfully categorized so you can find exactly what you're looking for - from everyday styles to bridal collections.\n\nFeatures and Offerings:\n- Browse an extensive gallery of nail designs, categorized by occasion, style, and regional tradition.\n- Save your favorite designs to revisit anytime.\n- Download designs to your device for offline reference.\n- Share designs you love directly from the app.\n- Keep your own reference photos privately in My Designs, saved only on your device.\n\nOur Vision:\nOur vision is to be your go-to source for nail inspiration - whether you're a bride planning your big day, an artist looking for references, or simply someone who loves the art of nails.\n\nContact Us:\nHave questions, suggestions, or feedback in mind? Feel free to reach out to us at {{email}}. Your input is invaluable in shaping the Nails App experience.\n\nThank you for using Nails App, where art, culture, and creativity come together!\n",
+    "privacyIntro1": "Yasir Munir built the Nails app as an Ad Supported app. This SERVICE is provided by Yasir Munir at no cost and is intended for use as is. This page is used to inform visitors regarding my policies with the collection, use, and disclosure of Personal Information if anyone decided to use my Service.",
+    "privacyIntro2": "If you choose to use my Service, then you agree to the collection and use of information in relation to this policy. The Personal Information that I collect is used for providing and improving the Service. I will not use or share your information with anyone except as described in this Privacy Policy.",
+    "privacyInfoCollectionHeading": "Information Collection and Use",
+    "privacyInfoCollectionBody": "For a better experience, while using our Service, I may require you to provide us with certain personally identifiable information, including but not limited to FullName,Email. The information that I request will be retained on your device and is not collected by me in any way. The app does use third-party services that may collect information used to identify you. Link to the privacy policy of third-party service providers used by the app Google Play Services AdMob",
+    "privacyLogDataHeading": "Log Data",
+    "privacyLogDataBody": "I want to inform you that whenever you use my Service, in a case of an error in the app I collect data and information (through third-party products) on your phone called Log Data. This Log Data may include information such as your device Internet Protocol (\"IP\") address, device name, operating system version, the configuration of the app when utilizing my Service, the time and date of your use of the Service, and other statistics.",
+    "privacyCookiesHeading": "Cookies",
+    "privacyCookiesBody": "Cookies are files with a small amount of data that are commonly used as anonymous unique identifiers. These are sent to your browser from the websites that you visit and are stored on your device's internal memory. This Service does not use these \"cookies\" explicitly. However, the app may use third-party code and libraries that use \"cookies\" to collect information and improve their services. You have the option to either accept or refuse these cookies and know when a cookie is being sent to your device. If you choose to refuse our cookies, you may not be able to use some portions of this Service.",
+    "privacyServiceProvidersHeading": "Service Providers",
+    "privacyServiceProvidersIntro": "I may employ third-party companies and individuals due to the following reasons:",
+    "privacyServiceProvidersBullet1": "To facilitate our Service;",
+    "privacyServiceProvidersBullet2": "To provide the Service on our behalf;",
+    "privacyServiceProvidersBullet3": "To perform Service-related services; or",
+    "privacyServiceProvidersBullet4": "To assist us in analyzing how our Service is used.",
+    "privacyServiceProvidersBody": "I want to inform users of this Service that these third parties have access to their Personal Information. The reason is to perform the tasks assigned to them on our behalf. However, they are obligated not to disclose or use the information for any other purpose.",
+    "privacySecurityHeading": "Security",
+    "privacySecurityBody": "I value your trust in providing us your Personal Information, thus we are striving to use commercially acceptable means of protecting it. But remember that no method of transmission over the internet, or method of electronic storage is 100% secure and reliable, and I cannot guarantee its absolute security.",
+    "privacyLinksHeading": "Links to Other Sites",
+    "privacyLinksBody": "This Service may contain links to other sites. If you click on a third-party link, you will be directed to that site. Note that these external sites are not operated by me. Therefore, I strongly advise you to review the Privacy Policy of these websites. I have no control over and assume no responsibility for the content, privacy policies, or practices of any third-party sites or services.",
+    "privacyChildrenHeading": "Children's Privacy",
+    "privacyChildrenBody": "These Services do not address anyone under the age of 13. I do not knowingly collect personally identifiable information from children under 13 years of age. In the case I discover that a child under 13 has provided me with personal information, I immediately delete this from our servers. If you are a parent or guardian and you are aware that your child has provided us with personal information, please contact me so that I will be able to do the necessary actions.",
+    "privacyChangesHeading": "Changes to This Privacy Policy",
+    "privacyChangesBody": "I may update our Privacy Policy from time to time. Thus, you are advised to review this page periodically for any changes. I will notify you of any changes by posting the new Privacy Policy on this page. This policy is effective as of 2023-12-03",
+    "privacyContactHeading": "Contact Us",
+    "privacyContactBody": "If you have any questions or suggestions about my Privacy Policy, do not hesitate to contact me at yasir.official128@gmail.com. This privacy policy page was created at",
+    "privacyLinkLabel1": "privacypolicytemplate.net",
+    "privacyLinkLabel2": "App Privacy Policy Generator",
+    "termsBody1": "By downloading or using the app, these terms will automatically apply to you – you should make sure therefore that you read them carefully before using the app. You're not allowed to copy or modify the app, any part of the app, or our trademarks in any way. You're not allowed to attempt to extract the source code of the app, and you also shouldn't try to translate the app into other languages or make derivative versions. The app itself, and all the trademarks, copyright, database rights, and other intellectual property rights related to it, still belong to Yasir Munir.",
+    "termsBody2": "Yasir Munir is committed to ensuring that the app is as useful and efficient as possible. For that reason, we reserve the right to make changes to the app or to charge for its services, at any time and for any reason. We will never charge you for the app or its services without making it very clear to you exactly what you're paying for.",
+    "termsBody3": "The Nails app stores and processes personal data that you have provided to us, to provide my Service. It's your responsibility to keep your phone and access to the app secure. We therefore recommend that you do not jailbreak or root your phone, which is the process of removing software restrictions and limitations imposed by the official operating system of your device. It could make your phone vulnerable to malware/viruses/malicious programs, compromise your phone's security features and it could mean that the Nails app won't work properly or at all.",
+    "termsBody4": "The app does use third-party services that declare their Terms and Conditions. Link to Terms and Conditions of third-party service providers used by the app",
+    "termsBullet1": "Google Play Services",
+    "termsBullet2": "AdMob",
+    "termsBody5": "You should be aware that there are certain things that Yasir Munir will not take responsibility for. Certain functions of the app will require the app to have an active internet connection. The connection can be Wi-Fi or provided by your mobile network provider, but Yasir Munir cannot take responsibility for the app not working at full functionality if you don't have access to Wi-Fi, and you don't have any of your data allowance left.",
+    "termsBody6": "If you're using the app outside of an area with Wi-Fi, you should remember that the terms of the agreement with your mobile network provider will still apply. As a result, you may be charged by your mobile provider for the cost of data for the duration of the connection while accessing the app, or other third-party charges. In using the app, you're accepting responsibility for any such charges, including roaming data charges if you use the app outside of your home territory (i.e. region or country) without turning off data roaming. If you are not the bill payer for the device on which you're using the app, please be aware that we assume that you have received permission from the bill payer for using the app.",
+    "termsBody7": "Along the same lines, Yasir Munir cannot always take responsibility for the way you use the app i.e. You need to make sure that your device stays charged – if it runs out of battery and you can't turn it on to avail the Service, Yasir Munir cannot accept responsibility.",
+    "termsBody8": "With respect to Yasir Munir's responsibility for your use of the app, when you're using the app, it's important to bear in mind that although we endeavor to ensure that it is updated and correct at all times, we do rely on third parties to provide information to us so that we can make it available to you. Yasir Munir accepts no liability for any loss, direct or indirect, you experience as a result of relying wholly on this functionality of the app.",
+    "termsBody9": "At some point, we may wish to update the app. The app is currently available on Android & iOS – the requirements for the both systems(and for any additional systems we decide to extend the availability of the app to) may change, and you'll need to download the updates if you want to keep using the app. Yasir Munir does not promise that it will always update the app so that it is relevant to you and/or works with the Android & iOS version that you have installed on your device. However, you promise to always accept updates to the application when offered to you, We may also wish to stop providing the app, and may terminate use of it at any time without giving notice of termination to you. Unless we tell you otherwise, upon any termination, (a) the rights and licenses granted to you in these terms will end; (b) you must stop using the app, and (if needed) delete it from your device.",
+    "termsChangesHeading": "Changes to This Terms and Conditions",
+    "termsChangesBody": "I may update our Terms and Conditions from time to time. Thus, you are advised to review this page periodically for any changes. I will notify you of any changes by posting the new Terms and Conditions on this page. These terms and conditions are effective as of 2023-12-03",
+    "termsContactHeading": "Contact Us",
+    "termsContactBody": "If you have any questions or suggestions about my Terms and Conditions, do not hesitate to contact me at yasir.official128@gmail.com. This Terms and Conditions page was generated by",
+    "termsLinkLabel": "App Privacy Policy Generator"
+  },
+  "notifications": {
+    "channelName": "Daily Design Inspiration",
+    "channelDescription": "One nail design idea each evening at 6 PM.",
+    "downloadChannelName": "Downloads",
+    "downloadChannelDescription": "Confirms when a design has been saved to your gallery.",
+    "downloadCompleteTitle": "Download complete",
+    "downloadCompleteBody": "Saved to your gallery in the Nails724 album.",
+    "downloadCompleteBodyTappable": "Saved to your gallery. Tap to view it.",
+    "messages": [
+      {
+        "title": "Today's nail muse",
+        "body": "A fresh set of nail designs is waiting for you."
+      },
+      {
+        "title": "Bridal inspiration",
+        "body": "Elegant bridal nails for the big day. Take a look."
+      },
+      {
+        "title": "Keep it simple",
+        "body": "Minimal designs that take minutes and still turn heads."
+      },
+      {
+        "title": "French tip classics",
+        "body": "Timeless tips that suit every outfit."
+      },
+      {
+        "title": "Short nail style",
+        "body": "Chic ideas that work beautifully on short nails."
+      },
+      {
+        "title": "Feeling festive?",
+        "body": "Celebration-ready nail designs picked for you."
+      },
+      {
+        "title": "Long and lovely",
+        "body": "Elegant designs made for length."
+      },
+      {
+        "title": "Five minutes to spare?",
+        "body": "Browse a quick design to try on your fingertips."
+      },
+      {
+        "title": "Base coat first",
+        "body": "A good base coat helps polish last longer."
+      },
+      {
+        "title": "Glitter glam",
+        "body": "Sparkle for parties, weddings and nights out."
+      },
+      {
+        "title": "Acrylic ideas",
+        "body": "Sculpted shapes and bold colour combinations."
+      },
+      {
+        "title": "Save your favourites",
+        "body": "Build a collection you can come back to anytime."
+      },
+      {
+        "title": "Modern and minimal",
+        "body": "Clean lines for an understated finish."
+      },
+      {
+        "title": "Practice makes perfect",
+        "body": "Start with thin coats and build up the colour."
+      },
+      {
+        "title": "Bridesmaid nails",
+        "body": "Designs that suit the bride's closest circle."
+      },
+      {
+        "title": "Cure it right",
+        "body": "Follow your lamp's timing so gel sets properly."
+      },
+      {
+        "title": "Floral favourites",
+        "body": "Petals, vines and blossoms on every nail."
+      },
+      {
+        "title": "Geometric nails",
+        "body": "Lines, triangles and shapes for a sharp finish."
+      },
+      {
+        "title": "For little hands",
+        "body": "Playful, simple designs made for kids."
+      },
+      {
+        "title": "Gel finish",
+        "body": "A glossy, long-lasting look worth trying."
+      },
+      {
+        "title": "Ombre magic",
+        "body": "Soft gradients that blend from one shade to the next."
+      },
+      {
+        "title": "Pearl accents",
+        "body": "A little shimmer that feels quietly luxurious."
+      },
+      {
+        "title": "Eid ready",
+        "body": "Festive nail designs for the celebration."
+      },
+      {
+        "title": "Wedding season",
+        "body": "Everything from engagement to reception, in one place."
+      },
+      {
+        "title": "Lace-inspired",
+        "body": "Delicate patterns with a soft, romantic feel."
+      },
+      {
+        "title": "Bold and graphic",
+        "body": "Strong shapes and colour blocks for real impact."
+      },
+      {
+        "title": "A quiet scroll",
+        "body": "Open the gallery and pick a design that catches your eye."
+      },
+      {
+        "title": "Negative space",
+        "body": "What you leave bare matters as much as what you paint."
+      },
+      {
+        "title": "Nude perfection",
+        "body": "Soft neutrals that go with everything."
+      },
+      {
+        "title": "Fresh inspiration",
+        "body": "Open the app and discover designs worth saving."
+      },
+      {
+        "title": "Marble effect",
+        "body": "Swirls of colour that look like polished stone."
+      },
+      {
+        "title": "Cover the gaps",
+        "body": "Tiny dots and lines tie a busy design together."
+      },
+      {
+        "title": "Party nails",
+        "body": "Bright, fun ideas for a night out."
+      },
+      {
+        "title": "Symmetry study",
+        "body": "Match all ten nails for a polished result."
+      },
+      {
+        "title": "Thin-line detail",
+        "body": "Fine work that rewards a steady hand."
+      },
+      {
+        "title": "Let it dry",
+        "body": "Give each coat a moment before adding the next."
+      },
+      {
+        "title": "Chrome shine",
+        "body": "Mirror finishes that catch every light."
+      },
+      {
+        "title": "Try a new style",
+        "body": "Step outside your usual and see what happens."
+      },
+      {
+        "title": "Almond shape",
+        "body": "A soft, flattering shape with endless design options."
+      },
+      {
+        "title": "Square and sleek",
+        "body": "Clean edges that suit bold colours."
+      },
+      {
+        "title": "Just the accent",
+        "body": "One decorated nail is sometimes all you need."
+      },
+      {
+        "title": "Stiletto drama",
+        "body": "Long, pointed designs for a dramatic look."
+      },
+      {
+        "title": "Something bold",
+        "body": "Go bigger than you normally would today."
+      },
+      {
+        "title": "Protect your cuticles",
+        "body": "A drop of oil each day keeps nails looking fresh."
+      },
+      {
+        "title": "Layer your look",
+        "body": "Combine textures, colours and finishes."
+      },
+      {
+        "title": "Engagement nails",
+        "body": "Elegant designs for the ring ceremony."
+      },
+      {
+        "title": "Free-hand practice",
+        "body": "Paint without a plan and see where it takes you."
+      },
+      {
+        "title": "Leaf and vine",
+        "body": "Organic shapes that flow along the nail."
+      },
+      {
+        "title": "Browse the gallery",
+        "body": "Open the app and discover designs waiting for you."
+      },
+      {
+        "title": "Border and outline",
+        "body": "Frame a design and the whole thing looks finished."
+      },
+      {
+        "title": "Checkerboard fun",
+        "body": "A simple pattern that adds instant style."
+      },
+      {
+        "title": "Reception looks",
+        "body": "Refined designs for the evening celebration."
+      },
+      {
+        "title": "Take your time",
+        "body": "The best manicures are never rushed."
+      },
+      {
+        "title": "Dots and drops",
+        "body": "The simplest detail, and one of the most effective."
+      },
+      {
+        "title": "Swirl and spiral",
+        "body": "Curved lines that draw the eye straight in."
+      },
+      {
+        "title": "Match your outfit",
+        "body": "Pick a design that echoes your colours."
+      },
+      {
+        "title": "Everyday nails",
+        "body": "You do not need an occasion to enjoy a good manicure."
+      },
+      {
+        "title": "Tiny details",
+        "body": "Small touches that peek out from a sleeve."
+      },
+      {
+        "title": "Classic red",
+        "body": "A timeless shade that never goes out of style."
+      },
+      {
+        "title": "Thumb designs",
+        "body": "An easy place to start if you are new to nail art."
+      },
+      {
+        "title": "Shading and depth",
+        "body": "Blend colours to make a design come alive."
+      },
+      {
+        "title": "Save it for later",
+        "body": "Found something you love? Add it to your collection."
+      },
+      {
+        "title": "Rhinestone sparkle",
+        "body": "A few well-placed gems add instant glamour."
+      },
+      {
+        "title": "Weekend project",
+        "body": "Set aside an afternoon for something detailed."
+      },
+      {
+        "title": "Fresh polish wins",
+        "body": "Newer bottles give smoother, more even colour."
+      },
+      {
+        "title": "Matching sets",
+        "body": "Ten nails, one continuous look."
+      },
+      {
+        "title": "Teardrop motifs",
+        "body": "A soft shape that fills any nail beautifully."
+      },
+      {
+        "title": "Winter shades",
+        "body": "Deep, rich colours for cooler days."
+      },
+      {
+        "title": "Less is more",
+        "body": "One well-placed detail can be enough."
+      },
+      {
+        "title": "Cover the whole nail",
+        "body": "Full-colour designs that look polished and complete."
+      },
+      {
+        "title": "Try something short",
+        "body": "Short nails are often easier to paint yourself."
+      },
+      {
+        "title": "Mesh and lace",
+        "body": "Delicate textures that add richness without weight."
+      },
+      {
+        "title": "Flowing curves",
+        "body": "Let the lines follow the shape of your nail."
+      },
+      {
+        "title": "A design a day",
+        "body": "Browse something new before you settle for the night."
+      },
+      {
+        "title": "Guest nails",
+        "body": "Quick, pretty designs for a room full of people."
+      },
+      {
+        "title": "Fine brushes",
+        "body": "A thin brush gives you far more control."
+      },
+      {
+        "title": "Crown motifs",
+        "body": "A regal centrepiece for a bridal design."
+      },
+      {
+        "title": "Sun and moon",
+        "body": "Celestial shapes with a timeless feel."
+      },
+      {
+        "title": "Keep it clean",
+        "body": "Wipe mistakes right away, before the polish sets."
+      },
+      {
+        "title": "Toe-nail ideas",
+        "body": "Matching colour finishes a whole look."
+      },
+      {
+        "title": "Discover a new design",
+        "body": "See which designs are catching everyone's eye."
+      },
+      {
+        "title": "Chunky and modern",
+        "body": "Bold shapes and open space for a current look."
+      },
+      {
+        "title": "Delicate and fine",
+        "body": "Whisper-thin lines for a soft, subtle finish."
+      },
+      {
+        "title": "Fusion designs",
+        "body": "Blend two styles and make something of your own."
+      },
+      {
+        "title": "Sister of the bride",
+        "body": "Designs that complement without competing."
+      },
+      {
+        "title": "Start small",
+        "body": "One accent today. A full set another time."
+      },
+      {
+        "title": "Butterfly motifs",
+        "body": "Light, playful shapes that suit any age."
+      },
+      {
+        "title": "Paint with confidence",
+        "body": "Commit to the stroke — hesitation shows in the line."
+      },
+      {
+        "title": "Need a spark?",
+        "body": "Twenty seconds in the gallery can unlock your next design."
+      },
+      {
+        "title": "Top coat time",
+        "body": "A glossy top coat seals in colour and shine."
+      },
+      {
+        "title": "Deep burgundy",
+        "body": "A rich shade that feels perfect for any season."
+      },
+      {
+        "title": "Do it twice",
+        "body": "A design you have done before always comes out better."
+      },
+      {
+        "title": "Pastel palette",
+        "body": "Soft shades with a fresh, easy feel."
+      },
+      {
+        "title": "Pick a favourite",
+        "body": "Open your saved designs and choose one to try."
+      },
+      {
+        "title": "Heart and star",
+        "body": "Small shapes that add a playful touch."
+      },
+      {
+        "title": "Big day tomorrow?",
+        "body": "Prep your nails tonight so the colour looks its best."
+      },
+      {
+        "title": "Explore a category",
+        "body": "There is a whole style you have not opened yet."
+      },
+      {
+        "title": "Found a favourite?",
+        "body": "Save a design and keep it in your collection."
+      },
+      {
+        "title": "Golden touches",
+        "body": "A thin gold line lifts any colour."
+      },
+      {
+        "title": "See you tomorrow",
+        "body": "New inspiration will be here waiting."
+      }
+    ]
+  },
+  "home": {
+    "brandEyebrow": "INSPIRATION GALLERY",
+    "themeToggleToLightLabel": "Switch to light theme",
+    "themeToggleToDarkLabel": "Switch to dark theme",
+    "collectionsSectionTitle": "Collections",
+    "trendingSectionTitle": "Trending {{year}}",
+    "randomSectionTitle": "Discover designs",
+    "categoryDescriptionFallback": "Beautiful nail inspiration",
+    "categoryNames": {
+      "All": "All",
+      "Acrylic": "Acrylic",
+      "Gel": "Gel",
+      "French Tips": "French Tips",
+      "Nail Art": "Nail Art",
+      "Bridal": "Bridal",
+      "Short Nails": "Short Nails",
+      "Long Nails": "Long Nails",
+      "Glitter": "Glitter",
+      "Minimal": "Minimal",
+      "Eid Special": "Eid Special",
+      "Kids": "Kids"
+    },
+    "categoryDescriptions": {
+      "All": "Explore every style in one place",
+      "Acrylic": "Sculpted shapes and bold colour",
+      "Gel": "Glossy, long-lasting finishes",
+      "French Tips": "Timeless tips for every outfit",
+      "Nail Art": "Creative designs, painted by hand",
+      "Bridal": "Elegant looks for your special day",
+      "Short Nails": "Chic ideas for short lengths",
+      "Long Nails": "Statement designs made for length",
+      "Glitter": "Sparkle for every celebration",
+      "Minimal": "Clean, simple and understated",
+      "Eid Special": "Festive designs for celebration",
+      "Kids": "Playful designs for little hands"
+    },
+    "brandTitle": "Nails",
+    "catalogDownloadThumbsTitle": "Downloading design gallery",
+    "catalogDownloadThumbsBody": "Getting thumbnails so you can browse. This happens once after install.",
+    "catalogDownloadFullTitle": "Downloading full-quality designs",
+    "catalogDownloadFullBody": "You can keep browsing. Full images will be ready in a moment.",
+    "catalogDownloadPreparing": "Preparing designs",
+    "catalogDownloadCellularTitle": "Continue over mobile data?",
+    "catalogDownloadCellularBody": "Your store needs permission to download the designs without Wi-Fi.",
+    "catalogDownloadUseData": "Use mobile data",
+    "catalogDownloadFailedTitle": "Couldn't download designs",
+    "catalogDownloadFailedBody": "Check your connection and try again.",
+    "catalogDownloadRetry": "Try again",
+    "catalogDownloadPercent": "{{percent}}%"
+  },
+  "favorites": {
+    "sectionTitle": "Saved",
+    "sectionSubtitle": "Your favorite designs",
+    "emptyTitle": "No saved designs",
+    "emptySubtitle": "Tap the heart on any design to save it here for quick access.",
+    "guestTitle": "Sign in to see your saved designs",
+    "guestSubtitle": "Your saved designs are linked to your account, so they stay with you on any device.",
+    "removedToast": "Removed from Saved",
+    "savedToast": "Added to Saved",
+    "emptyExploreCta": "Explore Designs"
+  },
+  "categoriesData": {
+    "headerSubtitle": "Discover beautiful designs",
+    "emptyTitle": "No designs yet",
+    "emptySubtitle": "We could not find designs for {{category}}. Pull to refresh or try another category.",
+    "errorTitle": "Couldn't load designs",
+    "errorSubtitle": "Pull down to try again"
+  },
+  "imageViewer": {
+    "downloadSuccessTitle": "Success",
+    "downloadSuccessMessageGallery": "Image saved to your gallery",
+    "downloadSuccessMessageFile": "Image downloaded successfully",
+    "permissionRequiredTitle": "Permission required",
+    "permissionRequiredMessage": "Allow storage access to save images to your gallery.",
+    "permissionRequiredMessageIOS": "Allow photo library access to save designs to your gallery.",
+    "downloadErrorTitle": "Error",
+    "downloadErrorMessage": "Failed to download image",
+    "shareErrorTitle": "Error",
+    "shareErrorMessage": "Failed to share image",
+    "goBackLabel": "Go back",
+    "removeFromSavedLabel": "Remove from saved",
+    "saveImageLabel": "Save image",
+    "savedLabel": "Saved",
+    "saveLabel": "Save",
+    "downloadingPercentLabel": "Downloading {{percent}} percent",
+    "downloadImageLabel": "Download image",
+    "downloadLabel": "Download",
+    "rotateImageLabel": "Rotate image",
+    "rotateLabel": "Rotate",
+    "sharingImageLabel": "Sharing image",
+    "shareImageLabel": "Share image",
+    "sharingLabel": "Sharing",
+    "shareLabel": "Share",
+    "guidanceLabel": "Design guidance",
+    "guidanceTitle": "Design Guidance",
+    "guidanceEmpty": "No guidance available for this design.",
+    "pagerCounter": "{{current}} / {{total}}"
+  }
+}

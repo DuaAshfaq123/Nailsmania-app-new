@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Protects resources that ARE used but that the resource shrinker cannot see.
+
+  ic_notification is referenced only by NAME, from JavaScript
+  (src/services/notifications/notificationService.js -> `smallIcon: 'ic_notification'`).
+  Notifee resolves it at runtime with getResources().getIdentifier(), so there is no XML or
+  dex reference for the shrinker to follow. With `shrinkResources true` (release only) it
+  was therefore classified as unused and stripped from the APK entirely — verified by
+  comparing aapt2 resource dumps of the two builds:
+
+      debug   drawable/ic_notification -> present
+      release drawable/ic_notification -> ABSENT
+
+  getIdentifier() then returns 0 and the daily notification fails to post. Debug builds do
+  not shrink resources, so this is invisible in normal testing and only appears in a
+  Play Store build.
+
+  launch_screen and splash_logo do NOT need protecting: they are reachable through
+  styles.xml -> LaunchTheme -> @drawable/launch_screen -> @drawable/splash_logo, and were
+  confirmed present in the release APK.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_notification" />

@@ -1,0 +1,11 @@
+apply plugin: 'com.android.asset-pack'
+
+assetPack {
+    packName = 'thumbs'
+    dynamicDelivery {
+        deliveryType = 'fast-follow'
+    }
+}
+
+ext.catalogPackSource = 'thumbs'
+apply from: rootProject.file('gradle/catalog-pack-assets.gradle')

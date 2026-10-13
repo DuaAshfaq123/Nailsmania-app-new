@@ -1,0 +1,1 @@
+$f='C:\nails\android\app\proguard-rules.pro'; [IO.File]::WriteAllText($f, [IO.File]::ReadAllText($f).Replace('com.mehandi724xone','com.nails724xone'))

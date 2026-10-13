@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  App override of react-native-bootsplash's compat_splash_screen.
+
+  Why: the library hard-codes logo at 288dp and brand at 200×80. That (1) stretches the
+  tagline and (2) differs from Android 12's circular system splash icon, so the logo
+  appears cropped then "pops" to full. We paint one precomposed fullscreen asset instead
+  (same approach as iOS BootSplash.storyboard / BootSplashFull).
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android"
+    android:opacity="opaque">
+
+    <item android:drawable="@color/bootsplash_background" />
+
+    <item>
+        <bitmap
+            android:antialias="true"
+            android:filter="true"
+            android:gravity="fill_horizontal|center_vertical"
+            android:src="@drawable/bootsplash_fullscreen" />
+    </item>
+
+</layer-list>

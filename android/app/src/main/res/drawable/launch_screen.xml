@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Painted by the window manager as MainActivity's windowBackground BEFORE any JS runs, so
+  it replaces the blank white/black frame the app used to show for the ~300-800ms between
+  process start and the JS Splash mounting.
+
+  Values are matched to src/screens/Splash/styles.js deliberately, so the handoff from this
+  window to the JS Splash is invisible:
+    - #000000 background            == Splash styles.container.backgroundColor
+    - circular logo, centred        == Splash styles.logo (borderRadius = width / 2)
+  splash_logo.png is a pre-masked circular copy of src/assets/images/AppLogo.png. It is NOT
+  @mipmap/ic_launcher — the home-screen icon is a different asset with different framing.
+
+  android:width/height pin the logo to a fixed size rather than letting a nodpi bitmap
+  stretch to fill the window; 240dp reads close to the JS Splash's min(78% of width, 320)
+  across phone sizes without ever overflowing a small screen.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android"
+    android:opacity="opaque">
+
+    <item android:drawable="@android:color/black" />
+
+    <item
+        android:width="240dp"
+        android:height="240dp"
+        android:gravity="center">
+        <bitmap
+            android:src="@drawable/splash_logo"
+            android:gravity="center" />
+    </item>
+
+</layer-list>

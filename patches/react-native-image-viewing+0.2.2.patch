@@ -1,0 +1,1367 @@
+diff --git a/node_modules/react-native-image-viewing/dist/ImageViewing.js b/node_modules/react-native-image-viewing/dist/ImageViewing.js
+index 3d7641a..0fd1cbb 100644
+--- a/node_modules/react-native-image-viewing/dist/ImageViewing.js
++++ b/node_modules/react-native-image-viewing/dist/ImageViewing.js
+@@ -5,7 +5,7 @@
+  * LICENSE file in the root directory of this source tree.
+  *
+  */
+-import React, { useCallback, useRef, useEffect } from "react";
++import React, { useCallback, useRef, useEffect, useState } from "react";
+ import { Animated, Dimensions, StyleSheet, View, VirtualizedList, Modal, } from "react-native";
+ import ImageItem from "./components/ImageItem/ImageItem";
+ import ImageDefaultHeader from "./components/ImageDefaultHeader";
+@@ -28,12 +28,29 @@ function ImageViewing({ images, keyExtractor, imageIndex, visible, onRequestClos
+             onImageIndexChange(currentImageIndex);
+         }
+     }, [currentImageIndex]);
++    
++    const [isZoomed, setIsZoomed] = useState(false);
++    const [isMultiTouch, setIsMultiTouch] = useState(false);
++    const currentIndexRef = useRef(currentImageIndex);
++    currentIndexRef.current = currentImageIndex;
+     const onZoom = useCallback((isScaled) => {
+-        var _a, _b;
+-        // @ts-ignore
+-        (_b = (_a = imageList) === null || _a === void 0 ? void 0 : _a.current) === null || _b === void 0 ? void 0 : _b.setNativeProps({ scrollEnabled: !isScaled });
++        setIsZoomed(isScaled);
+         toggleBarsVisible(!isScaled);
+-    }, [imageList]);
++    }, [toggleBarsVisible]);
++    const onMultiTouch = useCallback((isMulti) => {
++        setIsMultiTouch(isMulti);
++        if (isMulti) {
++            return;
++        }
++       
++        requestAnimationFrame(() => {
++            var _a;
++            (_a = imageList.current) === null || _a === void 0 ? void 0 : _a.scrollToOffset({
++                offset: SCREEN_WIDTH * currentIndexRef.current,
++                animated: true,
++            });
++        });
++    }, []);
+     if (!visible) {
+         return null;
+     }
+@@ -45,11 +62,11 @@ function ImageViewing({ images, keyExtractor, imageIndex, visible, onRequestClos
+         imageIndex: currentImageIndex,
+     })) : (<ImageDefaultHeader onRequestClose={onRequestCloseEnhanced}/>)}
+         </Animated.View>
+-        <VirtualizedList ref={imageList} data={images} horizontal pagingEnabled windowSize={2} initialNumToRender={1} maxToRenderPerBatch={1} showsHorizontalScrollIndicator={false} showsVerticalScrollIndicator={false} initialScrollIndex={imageIndex} getItem={(_, index) => images[index]} getItemCount={() => images.length} getItemLayout={(_, index) => ({
++        <VirtualizedList ref={imageList} style={styles.pager} scrollEnabled={!isZoomed && !isMultiTouch} data={images} horizontal pagingEnabled windowSize={2} initialNumToRender={1} maxToRenderPerBatch={1} showsHorizontalScrollIndicator={false} showsVerticalScrollIndicator={false} initialScrollIndex={imageIndex} getItem={(_, index) => images[index]} getItemCount={() => images.length} getItemLayout={(_, index) => ({
+         length: SCREEN_WIDTH,
+         offset: SCREEN_WIDTH * index,
+         index,
+-    })} renderItem={({ item: imageSrc }) => (<ImageItem onZoom={onZoom} imageSrc={imageSrc} onRequestClose={onRequestCloseEnhanced} onLongPress={onLongPress} delayLongPress={delayLongPress} swipeToCloseEnabled={swipeToCloseEnabled} doubleTapToZoomEnabled={doubleTapToZoomEnabled}/>)} onMomentumScrollEnd={onScroll} 
++    })} renderItem={({ item: imageSrc }) => (<ImageItem onZoom={onZoom} onMultiTouch={onMultiTouch} imageSrc={imageSrc} onRequestClose={onRequestCloseEnhanced} onLongPress={onLongPress} delayLongPress={delayLongPress} swipeToCloseEnabled={swipeToCloseEnabled} doubleTapToZoomEnabled={doubleTapToZoomEnabled}/>)} onMomentumScrollEnd={onScroll} 
+     //@ts-ignore
+     keyExtractor={(imageSrc, index) => keyExtractor
+         ? keyExtractor(imageSrc, index)
+@@ -69,6 +86,31 @@ const styles = StyleSheet.create({
+         flex: 1,
+         backgroundColor: "#000",
+     },
++    /*
++     * Patched for Mehandi724xONE: the pager — and ONLY the pager — is pinned left-to-right.
++     *
++     * Every index in this component is derived from a physical scroll offset:
++     * getItemLayout reports `offset: SCREEN_WIDTH * index`, initialScrollIndex scrolls to
++     * that offset, and useImageIndexChange recovers the page with
++     * `Math.round(scrollX / width)`. Android measures scrollX from the physical left edge
++     * and React Native forwards it unmodified, so under RTL the list rests at its MAXIMUM
++     * offset and counts down — every one of those calculations inverts. The reported page
++     * would be `count - 1 - actual`, which is not just a wrong counter: the viewer's save,
++     * download and share actions all operate on the image at the reported index, so they
++     * would act on the wrong design.
++     *
++     * Fabric applies a node's resolved Yoga direction straight to the Android view
++     * (SurfaceMountingManager.updateLayout), so this makes getLayoutDirection() report LTR
++     * for the underlying ScrollView and every calculation above stays correct.
++     *
++     * The chrome is deliberately untouched and still inherits RTL from the modal root: the
++     * back arrow, page counter, action bar and guidance sheet all mirror as they should.
++     * Only the direction you swipe photographs in stays constant, which is standard for a
++     * full-screen media pager.
++     */
++    pager: {
++        direction: "ltr",
++    },
+     header: {
+         position: "absolute",
+         width: "100%",
+diff --git a/node_modules/react-native-image-viewing/dist/components/ImageItem/ImageItem.android.js b/node_modules/react-native-image-viewing/dist/components/ImageItem/ImageItem.android.js
+index 5fcaa9f..1d9607c 100644
+--- a/node_modules/react-native-image-viewing/dist/components/ImageItem/ImageItem.android.js
++++ b/node_modules/react-native-image-viewing/dist/components/ImageItem/ImageItem.android.js
+@@ -4,81 +4,148 @@
+  * This source code is licensed under the MIT license found in the
+  * LICENSE file in the root directory of this source tree.
+  *
++ * Patched for Mehandi724xONE: render with FastImage (Glide) inside an Animated.View
++ * so zoom/pan transforms keep working while image bytes come from the FastImage cache.
++ *
++ * Also: the swipe-to-close ScrollView is muted through a real prop while the image is
++ * zoomed. Upstream did it with setNativeProps, which the new architecture does not
++ * implement for scrollEnabled — so the vertical scroll stayed live and dragging a zoomed
++ * image dismissed the viewer instead of panning it.
+  */
+-import React, { useCallback, useRef, useState } from "react";
+-import { Animated, ScrollView, Dimensions, StyleSheet, } from "react-native";
+-import useImageDimensions from "../../hooks/useImageDimensions";
+-import usePanResponder from "../../hooks/usePanResponder";
+-import { getImageStyles, getImageTransform } from "../../utils";
+-import { ImageLoading } from "./ImageLoading";
++import React, {useCallback, useRef, useState} from 'react';
++import {Animated, ScrollView, Dimensions, StyleSheet} from 'react-native';
++import FastImage from '@d11/react-native-fast-image';
++import useImageDimensions from '../../hooks/useImageDimensions';
++import usePanResponder from '../../hooks/usePanResponder';
++import {getImageStyles, getImageTransform} from '../../utils';
++import {ImageLoading} from './ImageLoading';
++
+ const SWIPE_CLOSE_OFFSET = 75;
+ const SWIPE_CLOSE_VELOCITY = 1.75;
+-const SCREEN = Dimensions.get("window");
++const SCREEN = Dimensions.get('window');
+ const SCREEN_WIDTH = SCREEN.width;
+ const SCREEN_HEIGHT = SCREEN.height;
+-const ImageItem = ({ imageSrc, onZoom, onRequestClose, onLongPress, delayLongPress, swipeToCloseEnabled = true, doubleTapToZoomEnabled = true, }) => {
+-    const imageContainer = useRef(null);
+-    const imageDimensions = useImageDimensions(imageSrc);
+-    const [translate, scale] = getImageTransform(imageDimensions, SCREEN);
+-    const scrollValueY = new Animated.Value(0);
+-    const [isLoaded, setLoadEnd] = useState(false);
+-    const onLoaded = useCallback(() => setLoadEnd(true), []);
+-    const onZoomPerformed = useCallback((isZoomed) => {
+-        var _a;
+-        onZoom(isZoomed);
+-        if ((_a = imageContainer) === null || _a === void 0 ? void 0 : _a.current) {
+-            imageContainer.current.setNativeProps({
+-                scrollEnabled: !isZoomed,
+-            });
+-        }
+-    }, [imageContainer]);
+-    const onLongPressHandler = useCallback(() => {
+-        onLongPress(imageSrc);
+-    }, [imageSrc, onLongPress]);
+-    const [panHandlers, scaleValue, translateValue] = usePanResponder({
+-        initialScale: scale || 1,
+-        initialTranslate: translate || { x: 0, y: 0 },
+-        onZoom: onZoomPerformed,
+-        doubleTapToZoomEnabled,
+-        onLongPress: onLongPressHandler,
+-        delayLongPress,
+-    });
+-    const imagesStyles = getImageStyles(imageDimensions, translateValue, scaleValue);
+-    const imageOpacity = scrollValueY.interpolate({
+-        inputRange: [-SWIPE_CLOSE_OFFSET, 0, SWIPE_CLOSE_OFFSET],
+-        outputRange: [0.7, 1, 0.7],
+-    });
+-    const imageStylesWithOpacity = { ...imagesStyles, opacity: imageOpacity };
+-    const onScrollEndDrag = ({ nativeEvent, }) => {
+-        var _a, _b, _c, _d, _e, _f;
+-        const velocityY = (_c = (_b = (_a = nativeEvent) === null || _a === void 0 ? void 0 : _a.velocity) === null || _b === void 0 ? void 0 : _b.y, (_c !== null && _c !== void 0 ? _c : 0));
+-        const offsetY = (_f = (_e = (_d = nativeEvent) === null || _d === void 0 ? void 0 : _d.contentOffset) === null || _e === void 0 ? void 0 : _e.y, (_f !== null && _f !== void 0 ? _f : 0));
+-        if ((Math.abs(velocityY) > SWIPE_CLOSE_VELOCITY &&
+-            offsetY > SWIPE_CLOSE_OFFSET) ||
+-            offsetY > SCREEN_HEIGHT / 2) {
+-            onRequestClose();
+-        }
+-    };
+-    const onScroll = ({ nativeEvent, }) => {
+-        var _a, _b, _c;
+-        const offsetY = (_c = (_b = (_a = nativeEvent) === null || _a === void 0 ? void 0 : _a.contentOffset) === null || _b === void 0 ? void 0 : _b.y, (_c !== null && _c !== void 0 ? _c : 0));
+-        scrollValueY.setValue(offsetY);
+-    };
+-    return (<ScrollView ref={imageContainer} style={styles.listItem} pagingEnabled nestedScrollEnabled showsHorizontalScrollIndicator={false} showsVerticalScrollIndicator={false} contentContainerStyle={styles.imageScrollContainer} scrollEnabled={swipeToCloseEnabled} {...(swipeToCloseEnabled && {
+-        onScroll,
+-        onScrollEndDrag,
+-    })}>
+-      <Animated.Image {...panHandlers} source={imageSrc} style={imageStylesWithOpacity} onLoad={onLoaded}/>
++
++const toFastSource = imageSrc => {
++  if (typeof imageSrc === 'number') {
++    return imageSrc;
++  }
++  return {
++    ...imageSrc,
++    priority: FastImage.priority.high,
++    cache: FastImage.cacheControl.immutable,
++  };
++};
++
++const ImageItem = ({
++  imageSrc,
++  onZoom,
++  onMultiTouch,
++  onRequestClose,
++  onLongPress,
++  delayLongPress,
++  swipeToCloseEnabled = true,
++  doubleTapToZoomEnabled = true,
++}) => {
++  const imageContainer = useRef(null);
++  const imageDimensions = useImageDimensions(imageSrc);
++  const [translate, scale] = getImageTransform(imageDimensions, SCREEN);
++  const scrollValueY = useRef(new Animated.Value(0)).current;
++  const [isLoaded, setLoadEnd] = useState(false);
++  const [isZoomed, setIsZoomed] = useState(false);
++  const onLoaded = useCallback(() => setLoadEnd(true), []);
++
++  const onZoomPerformed = useCallback(
++    nextIsZoomed => {
++      setIsZoomed(nextIsZoomed);
++      onZoom(nextIsZoomed);
++    },
++    [onZoom],
++  );
++
++  const onLongPressHandler = useCallback(() => {
++    onLongPress(imageSrc);
++  }, [imageSrc, onLongPress]);
++
++  const [panHandlers, scaleValue, translateValue] = usePanResponder({
++    initialScale: scale || 1,
++    initialTranslate: translate || {x: 0, y: 0},
++    onZoom: onZoomPerformed,
++    onTouchCountChange: onMultiTouch,
++    doubleTapToZoomEnabled,
++    onLongPress: onLongPressHandler,
++    delayLongPress,
++  });
++
++  const imagesStyles = getImageStyles(
++    imageDimensions,
++    translateValue,
++    scaleValue,
++  );
++  const imageOpacity = scrollValueY.interpolate({
++    inputRange: [-SWIPE_CLOSE_OFFSET, 0, SWIPE_CLOSE_OFFSET],
++    outputRange: [0.7, 1, 0.7],
++  });
++  const imageStylesWithOpacity = {...imagesStyles, opacity: imageOpacity};
++
++  const onScrollEndDrag = ({nativeEvent}) => {
++    const velocityY = nativeEvent?.velocity?.y ?? 0;
++    const offsetY = nativeEvent?.contentOffset?.y ?? 0;
++    if (
++      (Math.abs(velocityY) > SWIPE_CLOSE_VELOCITY &&
++        offsetY > SWIPE_CLOSE_OFFSET) ||
++      offsetY > SCREEN_HEIGHT / 2
++    ) {
++      onRequestClose();
++    }
++  };
++
++  const onScroll = ({nativeEvent}) => {
++    const offsetY = nativeEvent?.contentOffset?.y ?? 0;
++    scrollValueY.setValue(offsetY);
++  };
++
++  return (
++    <ScrollView
++      ref={imageContainer}
++      style={styles.listItem}
++      pagingEnabled
++      nestedScrollEnabled
++      showsHorizontalScrollIndicator={false}
++      showsVerticalScrollIndicator={false}
++      contentContainerStyle={styles.imageScrollContainer}
++      scrollEnabled={swipeToCloseEnabled && !isZoomed}
++      {...(swipeToCloseEnabled
++        ? {
++            onScroll,
++            onScrollEndDrag,
++          }
++        : null)}>
++      <Animated.View {...panHandlers} style={imageStylesWithOpacity}>
++        <FastImage
++          source={toFastSource(imageSrc)}
++          style={styles.fastImage}
++          resizeMode={FastImage.resizeMode.contain}
++          onLoad={onLoaded}
++        />
++      </Animated.View>
+       {(!isLoaded || !imageDimensions) && <ImageLoading />}
+-    </ScrollView>);
++    </ScrollView>
++  );
+ };
++
+ const styles = StyleSheet.create({
+-    listItem: {
+-        width: SCREEN_WIDTH,
+-        height: SCREEN_HEIGHT,
+-    },
+-    imageScrollContainer: {
+-        height: SCREEN_HEIGHT * 2,
+-    },
++  listItem: {
++    width: SCREEN_WIDTH,
++    height: SCREEN_HEIGHT,
++  },
++  imageScrollContainer: {
++    height: SCREEN_HEIGHT * 2,
++  },
++  fastImage: {
++    width: '100%',
++    height: '100%',
++  },
+ });
++
+ export default React.memo(ImageItem);
+diff --git a/node_modules/react-native-image-viewing/dist/components/ImageItem/ImageItem.ios.js b/node_modules/react-native-image-viewing/dist/components/ImageItem/ImageItem.ios.js
+index 0708505..3526521 100644
+--- a/node_modules/react-native-image-viewing/dist/components/ImageItem/ImageItem.ios.js
++++ b/node_modules/react-native-image-viewing/dist/components/ImageItem/ImageItem.ios.js
+@@ -4,76 +4,145 @@
+  * This source code is licensed under the MIT license found in the
+  * LICENSE file in the root directory of this source tree.
+  *
++ * Patched for Mehandi724xONE: render with FastImage (SDWebImage) inside an
++ * Animated.View so zoom/pan transforms keep working while image bytes come from
++ * the FastImage cache shared with gallery thumbnails.
+  */
+-import React, { useCallback, useRef, useState } from "react";
+-import { Animated, Dimensions, ScrollView, StyleSheet, View, TouchableWithoutFeedback, } from "react-native";
+-import useDoubleTapToZoom from "../../hooks/useDoubleTapToZoom";
+-import useImageDimensions from "../../hooks/useImageDimensions";
+-import { getImageStyles, getImageTransform } from "../../utils";
+-import { ImageLoading } from "./ImageLoading";
++import React, {useCallback, useRef, useState} from 'react';
++import {
++  Animated,
++  Dimensions,
++  ScrollView,
++  StyleSheet,
++  View,
++  TouchableWithoutFeedback,
++} from 'react-native';
++import FastImage from '@d11/react-native-fast-image';
++import useDoubleTapToZoom from '../../hooks/useDoubleTapToZoom';
++import useImageDimensions from '../../hooks/useImageDimensions';
++import {getImageStyles, getImageTransform} from '../../utils';
++import {ImageLoading} from './ImageLoading';
++
+ const SWIPE_CLOSE_OFFSET = 75;
+ const SWIPE_CLOSE_VELOCITY = 1.55;
+-const SCREEN = Dimensions.get("screen");
++const SCREEN = Dimensions.get('screen');
+ const SCREEN_WIDTH = SCREEN.width;
+ const SCREEN_HEIGHT = SCREEN.height;
+-const ImageItem = ({ imageSrc, onZoom, onRequestClose, onLongPress, delayLongPress, swipeToCloseEnabled = true, doubleTapToZoomEnabled = true, }) => {
+-    const scrollViewRef = useRef(null);
+-    const [loaded, setLoaded] = useState(false);
+-    const [scaled, setScaled] = useState(false);
+-    const imageDimensions = useImageDimensions(imageSrc);
+-    const handleDoubleTap = useDoubleTapToZoom(scrollViewRef, scaled, SCREEN);
+-    const [translate, scale] = getImageTransform(imageDimensions, SCREEN);
+-    const scrollValueY = new Animated.Value(0);
+-    const scaleValue = new Animated.Value(scale || 1);
+-    const translateValue = new Animated.ValueXY(translate);
+-    const maxScale = scale && scale > 0 ? Math.max(1 / scale, 1) : 1;
+-    const imageOpacity = scrollValueY.interpolate({
+-        inputRange: [-SWIPE_CLOSE_OFFSET, 0, SWIPE_CLOSE_OFFSET],
+-        outputRange: [0.5, 1, 0.5],
+-    });
+-    const imagesStyles = getImageStyles(imageDimensions, translateValue, scaleValue);
+-    const imageStylesWithOpacity = { ...imagesStyles, opacity: imageOpacity };
+-    const onScrollEndDrag = useCallback(({ nativeEvent }) => {
+-        var _a, _b, _c, _d;
+-        const velocityY = (_c = (_b = (_a = nativeEvent) === null || _a === void 0 ? void 0 : _a.velocity) === null || _b === void 0 ? void 0 : _b.y, (_c !== null && _c !== void 0 ? _c : 0));
+-        const scaled = ((_d = nativeEvent) === null || _d === void 0 ? void 0 : _d.zoomScale) > 1;
+-        onZoom(scaled);
+-        setScaled(scaled);
+-        if (!scaled &&
+-            swipeToCloseEnabled &&
+-            Math.abs(velocityY) > SWIPE_CLOSE_VELOCITY) {
+-            onRequestClose();
+-        }
+-    }, [scaled]);
+-    const onScroll = ({ nativeEvent, }) => {
+-        var _a, _b, _c, _d;
+-        const offsetY = (_c = (_b = (_a = nativeEvent) === null || _a === void 0 ? void 0 : _a.contentOffset) === null || _b === void 0 ? void 0 : _b.y, (_c !== null && _c !== void 0 ? _c : 0));
+-        if (((_d = nativeEvent) === null || _d === void 0 ? void 0 : _d.zoomScale) > 1) {
+-            return;
+-        }
+-        scrollValueY.setValue(offsetY);
+-    };
+-    const onLongPressHandler = useCallback((event) => {
+-        onLongPress(imageSrc);
+-    }, [imageSrc, onLongPress]);
+-    return (<View>
+-      <ScrollView ref={scrollViewRef} style={styles.listItem} pinchGestureEnabled showsHorizontalScrollIndicator={false} showsVerticalScrollIndicator={false} maximumZoomScale={maxScale} contentContainerStyle={styles.imageScrollContainer} scrollEnabled={swipeToCloseEnabled} onScrollEndDrag={onScrollEndDrag} scrollEventThrottle={1} {...(swipeToCloseEnabled && {
+-        onScroll,
+-    })}>
++
++const toFastSource = imageSrc => {
++  if (typeof imageSrc === 'number') {
++    return imageSrc;
++  }
++  return {
++    ...imageSrc,
++    priority: FastImage.priority.high,
++    cache: FastImage.cacheControl.immutable,
++  };
++};
++
++const ImageItem = ({
++  imageSrc,
++  onZoom,
++  onRequestClose,
++  onLongPress,
++  delayLongPress,
++  swipeToCloseEnabled = true,
++  doubleTapToZoomEnabled = true,
++}) => {
++  const scrollViewRef = useRef(null);
++  const [loaded, setLoaded] = useState(false);
++  const [scaled, setScaled] = useState(false);
++  const imageDimensions = useImageDimensions(imageSrc);
++  const handleDoubleTap = useDoubleTapToZoom(scrollViewRef, scaled, SCREEN);
++  const [translate, scale] = getImageTransform(imageDimensions, SCREEN);
++  const scrollValueY = new Animated.Value(0);
++  const scaleValue = new Animated.Value(scale || 1);
++  const translateValue = new Animated.ValueXY(translate);
++  const maxScale = scale && scale > 0 ? Math.max(1 / scale, 1) : 1;
++  const imageOpacity = scrollValueY.interpolate({
++    inputRange: [-SWIPE_CLOSE_OFFSET, 0, SWIPE_CLOSE_OFFSET],
++    outputRange: [0.5, 1, 0.5],
++  });
++  const imagesStyles = getImageStyles(
++    imageDimensions,
++    translateValue,
++    scaleValue,
++  );
++  const imageStylesWithOpacity = {...imagesStyles, opacity: imageOpacity};
++
++  const onScrollEndDrag = useCallback(
++    ({nativeEvent}) => {
++      const velocityY = nativeEvent?.velocity?.y ?? 0;
++      const nextScaled = (nativeEvent?.zoomScale ?? 1) > 1;
++      onZoom(nextScaled);
++      setScaled(nextScaled);
++      if (
++        !nextScaled &&
++        swipeToCloseEnabled &&
++        Math.abs(velocityY) > SWIPE_CLOSE_VELOCITY
++      ) {
++        onRequestClose();
++      }
++    },
++    [onRequestClose, onZoom, swipeToCloseEnabled],
++  );
++
++  const onScroll = ({nativeEvent}) => {
++    if ((nativeEvent?.zoomScale ?? 1) > 1) {
++      return;
++    }
++    scrollValueY.setValue(nativeEvent?.contentOffset?.y ?? 0);
++  };
++
++  const onLongPressHandler = useCallback(() => {
++    onLongPress(imageSrc);
++  }, [imageSrc, onLongPress]);
++
++  return (
++    <View>
++      <ScrollView
++        ref={scrollViewRef}
++        style={styles.listItem}
++        pinchGestureEnabled
++        showsHorizontalScrollIndicator={false}
++        showsVerticalScrollIndicator={false}
++        maximumZoomScale={maxScale}
++        contentContainerStyle={styles.imageScrollContainer}
++        scrollEnabled={swipeToCloseEnabled}
++        onScrollEndDrag={onScrollEndDrag}
++        scrollEventThrottle={1}
++        {...(swipeToCloseEnabled ? {onScroll} : null)}>
+         {(!loaded || !imageDimensions) && <ImageLoading />}
+-        <TouchableWithoutFeedback onPress={doubleTapToZoomEnabled ? handleDoubleTap : undefined} onLongPress={onLongPressHandler} delayLongPress={delayLongPress}>
+-          <Animated.Image source={imageSrc} style={imageStylesWithOpacity} onLoad={() => setLoaded(true)}/>
++        <TouchableWithoutFeedback
++          onPress={doubleTapToZoomEnabled ? handleDoubleTap : undefined}
++          onLongPress={onLongPressHandler}
++          delayLongPress={delayLongPress}>
++          <Animated.View style={imageStylesWithOpacity}>
++            <FastImage
++              source={toFastSource(imageSrc)}
++              style={styles.fastImage}
++              resizeMode={FastImage.resizeMode.contain}
++              onLoad={() => setLoaded(true)}
++            />
++          </Animated.View>
+         </TouchableWithoutFeedback>
+       </ScrollView>
+-    </View>);
++    </View>
++  );
+ };
++
+ const styles = StyleSheet.create({
+-    listItem: {
+-        width: SCREEN_WIDTH,
+-        height: SCREEN_HEIGHT,
+-    },
+-    imageScrollContainer: {
+-        height: SCREEN_HEIGHT,
+-    },
++  listItem: {
++    width: SCREEN_WIDTH,
++    height: SCREEN_HEIGHT,
++  },
++  imageScrollContainer: {
++    height: SCREEN_HEIGHT,
++  },
++  fastImage: {
++    width: '100%',
++    height: '100%',
++  },
+ });
++
+ export default React.memo(ImageItem);
+diff --git a/node_modules/react-native-image-viewing/dist/hooks/useAnimatedComponents.js b/node_modules/react-native-image-viewing/dist/hooks/useAnimatedComponents.js
+index 4730fe4..fe499c4 100644
+--- a/node_modules/react-native-image-viewing/dist/hooks/useAnimatedComponents.js
++++ b/node_modules/react-native-image-viewing/dist/hooks/useAnimatedComponents.js
+@@ -4,38 +4,79 @@
+  * This source code is licensed under the MIT license found in the
+  * LICENSE file in the root directory of this source tree.
+  *
++ * Patched for Mehandi724xONE: the bar offsets live in refs, and the toggle is stable and
++ * idempotent.
++ *
++ * Upstream built `new Animated.ValueXY()` in the hook body, so every render of the viewer
++ * handed the header and footer a brand-new value sitting at 0 while the hide animation was
++ * still running against the previous one. Whatever offset had last reached the native view
++ * was where the bar stayed: half off the bottom of the screen, or partly visible at an
++ * arbitrary position. A slow pinch made it worst, since it spans the most renders.
++ *
++ * That was always a latent bug, but it only became reachable when zoom started driving
++ * viewer state — renders during a gesture are routine now.
+  */
+-import { Animated } from "react-native";
+-const INITIAL_POSITION = { x: 0, y: 0 };
++import {useCallback, useRef} from 'react';
++import {Animated} from 'react-native';
++
++const INITIAL_POSITION = {x: 0, y: 0};
+ const ANIMATION_CONFIG = {
+-    duration: 200,
+-    useNativeDriver: true,
++  duration: 200,
++  useNativeDriver: true,
+ };
++const HEADER_HIDDEN_OFFSET = -300;
++const FOOTER_HIDDEN_OFFSET = 300;
++
+ const useAnimatedComponents = () => {
+-    const headerTranslate = new Animated.ValueXY(INITIAL_POSITION);
+-    const footerTranslate = new Animated.ValueXY(INITIAL_POSITION);
+-    const toggleVisible = (isVisible) => {
+-        if (isVisible) {
+-            Animated.parallel([
+-                Animated.timing(headerTranslate.y, { ...ANIMATION_CONFIG, toValue: 0 }),
+-                Animated.timing(footerTranslate.y, { ...ANIMATION_CONFIG, toValue: 0 }),
+-            ]).start();
+-        }
+-        else {
+-            Animated.parallel([
+-                Animated.timing(headerTranslate.y, {
+-                    ...ANIMATION_CONFIG,
+-                    toValue: -300,
+-                }),
+-                Animated.timing(footerTranslate.y, {
+-                    ...ANIMATION_CONFIG,
+-                    toValue: 300,
+-                }),
+-            ]).start();
++  const headerTranslate = useRef(
++    new Animated.ValueXY(INITIAL_POSITION),
++  ).current;
++  const footerTranslate = useRef(
++    new Animated.ValueXY(INITIAL_POSITION),
++  ).current;
++  const isVisibleRef = useRef(true);
++  const animationRef = useRef(null);
++
++  const toggleVisible = useCallback(
++    isVisible => {
++      if (isVisibleRef.current === isVisible) {
++        return;
++      }
++      isVisibleRef.current = isVisible;
++
++      // A pinch can cross the zoom threshold while the previous transition is still
++      // running; stopping it first keeps two animations from driving one value.
++      if (animationRef.current) {
++        animationRef.current.stop();
++      }
++
++      const animation = Animated.parallel([
++        Animated.timing(headerTranslate.y, {
++          ...ANIMATION_CONFIG,
++          toValue: isVisible ? 0 : HEADER_HIDDEN_OFFSET,
++        }),
++        Animated.timing(footerTranslate.y, {
++          ...ANIMATION_CONFIG,
++          toValue: isVisible ? 0 : FOOTER_HIDDEN_OFFSET,
++        }),
++      ]);
++
++      animationRef.current = animation;
++      animation.start(() => {
++        // Only the animation that is still current may clear the handle — a stopped one
++        // reports here too, after its replacement has already been stored.
++        if (animationRef.current === animation) {
++          animationRef.current = null;
+         }
+-    };
+-    const headerTransform = headerTranslate.getTranslateTransform();
+-    const footerTransform = footerTranslate.getTranslateTransform();
+-    return [headerTransform, footerTransform, toggleVisible];
++      });
++    },
++    [footerTranslate, headerTranslate],
++  );
++
++  const headerTransform = headerTranslate.getTranslateTransform();
++  const footerTransform = footerTranslate.getTranslateTransform();
++
++  return [headerTransform, footerTransform, toggleVisible];
+ };
++
+ export default useAnimatedComponents;
+diff --git a/node_modules/react-native-image-viewing/dist/hooks/usePanResponder.js b/node_modules/react-native-image-viewing/dist/hooks/usePanResponder.js
+index 99dcbc7..57a6ef0 100644
+--- a/node_modules/react-native-image-viewing/dist/hooks/usePanResponder.js
++++ b/node_modules/react-native-image-viewing/dist/hooks/usePanResponder.js
+@@ -4,270 +4,475 @@
+  * This source code is licensed under the MIT license found in the
+  * LICENSE file in the root directory of this source tree.
+  *
++ * Patched for Mehandi724xONE: the gesture bookkeeping and its Animated values are held in
++ * a ref, and the hook reports how many fingers are down.
++ *
++ * Upstream declared `currentScale`, `currentTranslate` and both Animated values as plain
++ * `let`s in the hook body and rebuilt the PanResponder every render. Any re-render of the
++ * item therefore reset the live zoom to the initial fit and handed the responder a fresh
++ * pair of values — and the item does re-render mid-gesture (its own load state, and the
++ * viewer's action bar lives in the same tree). Pinching while that happened snapped the
++ * image back and left the pan unresponsive until the page was swiped away.
++ *
++ * The touch-count report is what lets the pager lock itself for two-finger gestures, which
++ * the JS responder cannot do on its own: createPanResponder returns false from
++ * onShouldBlockNativeResponder, so the native pager keeps scrolling underneath. See
++ * ImageViewing.
+  */
+-import { useMemo, useEffect } from "react";
+-import { Animated, Dimensions, } from "react-native";
+-import { createPanResponder, getDistanceBetweenTouches, getImageTranslate, getImageDimensionsByTranslate, } from "../utils";
+-const SCREEN = Dimensions.get("window");
++import {useEffect, useMemo, useRef} from 'react';
++import {Animated, Dimensions} from 'react-native';
++import {
++  createPanResponder,
++  getDistanceBetweenTouches,
++  getImageTranslate,
++  getImageDimensionsByTranslate,
++} from '../utils';
++
++const SCREEN = Dimensions.get('window');
+ const SCREEN_WIDTH = SCREEN.width;
+ const SCREEN_HEIGHT = SCREEN.height;
+ const MIN_DIMENSION = Math.min(SCREEN_WIDTH, SCREEN_HEIGHT);
+ const SCALE_MAX = 2;
+ const DOUBLE_TAP_DELAY = 300;
+ const OUT_BOUND_MULTIPLIER = 0.75;
+-const usePanResponder = ({ initialScale, initialTranslate, onZoom, doubleTapToZoomEnabled, onLongPress, delayLongPress, }) => {
+-    let numberInitialTouches = 1;
+-    let initialTouches = [];
+-    let currentScale = initialScale;
+-    let currentTranslate = initialTranslate;
+-    let tmpScale = 0;
+-    let tmpTranslate = null;
+-    let isDoubleTapPerformed = false;
+-    let lastTapTS = null;
+-    let longPressHandlerRef = null;
+-    const meaningfulShift = MIN_DIMENSION * 0.01;
+-    const scaleValue = new Animated.Value(initialScale);
+-    const translateValue = new Animated.ValueXY(initialTranslate);
+-    const imageDimensions = getImageDimensionsByTranslate(initialTranslate, SCREEN);
+-    const getBounds = (scale) => {
+-        const scaledImageDimensions = {
+-            width: imageDimensions.width * scale,
+-            height: imageDimensions.height * scale,
+-        };
+-        const translateDelta = getImageTranslate(scaledImageDimensions, SCREEN);
+-        const left = initialTranslate.x - translateDelta.x;
+-        const right = left - (scaledImageDimensions.width - SCREEN.width);
+-        const top = initialTranslate.y - translateDelta.y;
+-        const bottom = top - (scaledImageDimensions.height - SCREEN.height);
+-        return [top, left, bottom, right];
++const MEANINGFUL_SHIFT = MIN_DIMENSION * 0.01;
++const ZOOM_TOLERANCE = 0.01;
++
++
++const reportZoom = (state, onZoom, isZoomed) => {
++  if (state.isZoomReported === isZoomed) {
++    return;
++  }
++  state.isZoomReported = isZoomed;
++  if (typeof onZoom === 'function') {
++    onZoom(isZoomed);
++  }
++};
++
++const createGestureState = (initialScale, initialTranslate) => ({
++  initialScale,
++  initialTranslate,
++  currentScale: initialScale,
++  currentTranslate: initialTranslate,
++  imageDimensions: getImageDimensionsByTranslate(initialTranslate, SCREEN),
++  numberInitialTouches: 1,
++  initialTouches: [],
++  tmpScale: 0,
++  tmpTranslate: null,
++  isDoubleTapPerformed: false,
++  isMultiTouch: false,
++  isZoomReported: false,
++  lastTapTS: null,
++  longPressHandle: null,
++  scaleValue: new Animated.Value(initialScale),
++  translateValue: new Animated.ValueXY(initialTranslate),
++});
++
++const usePanResponder = ({
++  initialScale,
++  initialTranslate,
++  onZoom,
++  onTouchCountChange,
++  doubleTapToZoomEnabled,
++  onLongPress,
++  delayLongPress,
++}) => {
++  // Read through refs so the responder below survives prop identity changes.
++  const onZoomRef = useRef(onZoom);
++  const onTouchCountChangeRef = useRef(onTouchCountChange);
++  const onLongPressRef = useRef(onLongPress);
++  const delayLongPressRef = useRef(delayLongPress);
++  const doubleTapEnabledRef = useRef(doubleTapToZoomEnabled);
++  onZoomRef.current = onZoom;
++  onTouchCountChangeRef.current = onTouchCountChange;
++  onLongPressRef.current = onLongPress;
++  delayLongPressRef.current = delayLongPress;
++  doubleTapEnabledRef.current = doubleTapToZoomEnabled;
++
++  const stateRef = useRef(null);
++  if (stateRef.current === null) {
++    stateRef.current = createGestureState(initialScale, initialTranslate);
++  }
++  const state = stateRef.current;
++
++  // The fitted scale and translate are only known once the image has been measured, and
++  // the cell is reused when it recycles onto another image. Re-fit on the values rather
++  // than the object identity, which changes on every render.
++  if (
++    state.initialScale !== initialScale ||
++    state.initialTranslate.x !== initialTranslate.x ||
++    state.initialTranslate.y !== initialTranslate.y
++  ) {
++    state.initialScale = initialScale;
++    state.initialTranslate = initialTranslate;
++    state.currentScale = initialScale;
++    state.currentTranslate = initialTranslate;
++    state.tmpScale = 0;
++    state.tmpTranslate = null;
++    state.imageDimensions = getImageDimensionsByTranslate(
++      initialTranslate,
++      SCREEN,
++    );
++    state.isZoomReported = false;
++    state.scaleValue.setValue(initialScale);
++    state.translateValue.setValue(initialTranslate);
++  }
++
++  useEffect(() => {
++    const listenerId = state.scaleValue.addListener(({value}) => {
++      const isZoomed =
++        Math.abs(value - state.initialScale) >
++        state.initialScale * ZOOM_TOLERANCE;
++      reportZoom(state, onZoomRef.current, isZoomed);
++    });
++    // removeListener, not removeAllListeners: this hook no longer re-subscribes on every
++    // render, so tearing down every listener would also drop a live one.
++    return () => state.scaleValue.removeListener(listenerId);
++  }, [state]);
++
++  const panResponder = useMemo(() => {
++    const {scaleValue, translateValue} = state;
++
++    const reportMultiTouch = isMultiTouch => {
++      if (state.isMultiTouch === isMultiTouch) {
++        return;
++      }
++      state.isMultiTouch = isMultiTouch;
++      if (typeof onTouchCountChangeRef.current === 'function') {
++        onTouchCountChangeRef.current(isMultiTouch);
++      }
++    };
++
++    const getBounds = scale => {
++      const scaledImageDimensions = {
++        width: state.imageDimensions.width * scale,
++        height: state.imageDimensions.height * scale,
++      };
++      const translateDelta = getImageTranslate(scaledImageDimensions, SCREEN);
++      const left = state.initialTranslate.x - translateDelta.x;
++      const right = left - (scaledImageDimensions.width - SCREEN.width);
++      const top = state.initialTranslate.y - translateDelta.y;
++      const bottom = top - (scaledImageDimensions.height - SCREEN.height);
++      return [top, left, bottom, right];
+     };
++
+     const getTranslateInBounds = (translate, scale) => {
+-        const inBoundTranslate = { x: translate.x, y: translate.y };
+-        const [topBound, leftBound, bottomBound, rightBound] = getBounds(scale);
+-        if (translate.x > leftBound) {
+-            inBoundTranslate.x = leftBound;
+-        }
+-        else if (translate.x < rightBound) {
+-            inBoundTranslate.x = rightBound;
++      const inBoundTranslate = {x: translate.x, y: translate.y};
++      const [topBound, leftBound, bottomBound, rightBound] = getBounds(scale);
++      if (translate.x > leftBound) {
++        inBoundTranslate.x = leftBound;
++      } else if (translate.x < rightBound) {
++        inBoundTranslate.x = rightBound;
++      }
++      if (translate.y > topBound) {
++        inBoundTranslate.y = topBound;
++      } else if (translate.y < bottomBound) {
++        inBoundTranslate.y = bottomBound;
++      }
++      return inBoundTranslate;
++    };
++
++    const fitsScreenByWidth = () =>
++      state.imageDimensions.width * state.currentScale < SCREEN_WIDTH;
++    const fitsScreenByHeight = () =>
++      state.imageDimensions.height * state.currentScale < SCREEN_HEIGHT;
++
++    const cancelLongPressHandle = () => {
++      if (state.longPressHandle) {
++        clearTimeout(state.longPressHandle);
++        state.longPressHandle = null;
++      }
++    };
++
++    // Shared by release and termination: a gesture that is taken away mid-pinch must
++    // still commit, or the next one starts from a scale the image is no longer at.
++    const settle = () => {
++      cancelLongPressHandle();
++      reportMultiTouch(false);
++
++      if (state.isDoubleTapPerformed) {
++        state.isDoubleTapPerformed = false;
++      }
++
++      if (state.tmpScale > 0) {
++        if (state.tmpScale < state.initialScale || state.tmpScale > SCALE_MAX) {
++          state.tmpScale =
++            state.tmpScale < state.initialScale
++              ? state.initialScale
++              : SCALE_MAX;
++          Animated.timing(scaleValue, {
++            toValue: state.tmpScale,
++            duration: 100,
++            useNativeDriver: true,
++          }).start();
+         }
+-        if (translate.y > topBound) {
+-            inBoundTranslate.y = topBound;
++        state.currentScale = state.tmpScale;
++        state.tmpScale = 0;
++      }
++      if (state.tmpTranslate) {
++        const {x, y} = state.tmpTranslate;
++        const [topBound, leftBound, bottomBound, rightBound] = getBounds(
++          state.currentScale,
++        );
++        let nextTranslateX = x;
++        let nextTranslateY = y;
++        if (!fitsScreenByWidth()) {
++          if (nextTranslateX > leftBound) {
++            nextTranslateX = leftBound;
++          } else if (nextTranslateX < rightBound) {
++            nextTranslateX = rightBound;
++          }
+         }
+-        else if (translate.y < bottomBound) {
+-            inBoundTranslate.y = bottomBound;
++        if (!fitsScreenByHeight()) {
++          if (nextTranslateY > topBound) {
++            nextTranslateY = topBound;
++          } else if (nextTranslateY < bottomBound) {
++            nextTranslateY = bottomBound;
++          }
+         }
+-        return inBoundTranslate;
+-    };
+-    const fitsScreenByWidth = () => imageDimensions.width * currentScale < SCREEN_WIDTH;
+-    const fitsScreenByHeight = () => imageDimensions.height * currentScale < SCREEN_HEIGHT;
+-    useEffect(() => {
+-        scaleValue.addListener(({ value }) => {
+-            if (typeof onZoom === "function") {
+-                onZoom(value !== initialScale);
+-            }
+-        });
+-        return () => scaleValue.removeAllListeners();
+-    });
+-    const cancelLongPressHandle = () => {
+-        longPressHandlerRef && clearTimeout(longPressHandlerRef);
++        Animated.parallel([
++          Animated.timing(translateValue.x, {
++            toValue: nextTranslateX,
++            duration: 100,
++            useNativeDriver: true,
++          }),
++          Animated.timing(translateValue.y, {
++            toValue: nextTranslateY,
++            duration: 100,
++            useNativeDriver: true,
++          }),
++        ]).start();
++
++        state.currentTranslate = {x: nextTranslateX, y: nextTranslateY};
++        state.tmpTranslate = null;
++      }
+     };
++
+     const handlers = {
+-        onGrant: (_, gestureState) => {
+-            numberInitialTouches = gestureState.numberActiveTouches;
+-            if (gestureState.numberActiveTouches > 1)
+-                return;
+-            longPressHandlerRef = setTimeout(onLongPress, delayLongPress);
+-        },
+-        onStart: (event, gestureState) => {
+-            initialTouches = event.nativeEvent.touches;
+-            numberInitialTouches = gestureState.numberActiveTouches;
+-            if (gestureState.numberActiveTouches > 1)
+-                return;
+-            const tapTS = Date.now();
+-            // Handle double tap event by calculating diff between first and second taps timestamps
+-            isDoubleTapPerformed = Boolean(lastTapTS && tapTS - lastTapTS < DOUBLE_TAP_DELAY);
+-            if (doubleTapToZoomEnabled && isDoubleTapPerformed) {
+-                const isScaled = currentTranslate.x !== initialTranslate.x; // currentScale !== initialScale;
+-                const { pageX: touchX, pageY: touchY } = event.nativeEvent.touches[0];
+-                const targetScale = SCALE_MAX;
+-                const nextScale = isScaled ? initialScale : targetScale;
+-                const nextTranslate = isScaled
+-                    ? initialTranslate
+-                    : getTranslateInBounds({
+-                        x: initialTranslate.x +
+-                            (SCREEN_WIDTH / 2 - touchX) * (targetScale / currentScale),
+-                        y: initialTranslate.y +
+-                            (SCREEN_HEIGHT / 2 - touchY) * (targetScale / currentScale),
+-                    }, targetScale);
+-                onZoom(!isScaled);
+-                Animated.parallel([
+-                    Animated.timing(translateValue.x, {
+-                        toValue: nextTranslate.x,
+-                        duration: 300,
+-                        useNativeDriver: true,
+-                    }),
+-                    Animated.timing(translateValue.y, {
+-                        toValue: nextTranslate.y,
+-                        duration: 300,
+-                        useNativeDriver: true,
+-                    }),
+-                    Animated.timing(scaleValue, {
+-                        toValue: nextScale,
+-                        duration: 300,
+-                        useNativeDriver: true,
+-                    }),
+-                ], { stopTogether: false }).start(() => {
+-                    currentScale = nextScale;
+-                    currentTranslate = nextTranslate;
+-                });
+-                lastTapTS = null;
+-            }
+-            else {
+-                lastTapTS = Date.now();
+-            }
+-        },
+-        onMove: (event, gestureState) => {
+-            const { dx, dy } = gestureState;
+-            if (Math.abs(dx) >= meaningfulShift || Math.abs(dy) >= meaningfulShift) {
+-                cancelLongPressHandle();
+-            }
+-            // Don't need to handle move because double tap in progress (was handled in onStart)
+-            if (doubleTapToZoomEnabled && isDoubleTapPerformed) {
+-                cancelLongPressHandle();
+-                return;
+-            }
+-            if (numberInitialTouches === 1 &&
+-                gestureState.numberActiveTouches === 2) {
+-                numberInitialTouches = 2;
+-                initialTouches = event.nativeEvent.touches;
+-            }
+-            const isTapGesture = numberInitialTouches == 1 && gestureState.numberActiveTouches === 1;
+-            const isPinchGesture = numberInitialTouches === 2 && gestureState.numberActiveTouches === 2;
+-            if (isPinchGesture) {
+-                cancelLongPressHandle();
+-                const initialDistance = getDistanceBetweenTouches(initialTouches);
+-                const currentDistance = getDistanceBetweenTouches(event.nativeEvent.touches);
+-                let nextScale = (currentDistance / initialDistance) * currentScale;
+-                /**
+-                 * In case image is scaling smaller than initial size ->
+-                 * slow down this transition by applying OUT_BOUND_MULTIPLIER
+-                 */
+-                if (nextScale < initialScale) {
+-                    nextScale =
+-                        nextScale + (initialScale - nextScale) * OUT_BOUND_MULTIPLIER;
+-                }
+-                /**
+-                 * In case image is scaling down -> move it in direction of initial position
+-                 */
+-                if (currentScale > initialScale && currentScale > nextScale) {
+-                    const k = (currentScale - initialScale) / (currentScale - nextScale);
+-                    const nextTranslateX = nextScale < initialScale
+-                        ? initialTranslate.x
+-                        : currentTranslate.x -
+-                            (currentTranslate.x - initialTranslate.x) / k;
+-                    const nextTranslateY = nextScale < initialScale
+-                        ? initialTranslate.y
+-                        : currentTranslate.y -
+-                            (currentTranslate.y - initialTranslate.y) / k;
+-                    translateValue.x.setValue(nextTranslateX);
+-                    translateValue.y.setValue(nextTranslateY);
+-                    tmpTranslate = { x: nextTranslateX, y: nextTranslateY };
+-                }
+-                scaleValue.setValue(nextScale);
+-                tmpScale = nextScale;
+-            }
+-            if (isTapGesture && currentScale > initialScale) {
+-                const { x, y } = currentTranslate;
+-                const { dx, dy } = gestureState;
+-                const [topBound, leftBound, bottomBound, rightBound] = getBounds(currentScale);
+-                let nextTranslateX = x + dx;
+-                let nextTranslateY = y + dy;
+-                if (nextTranslateX > leftBound) {
+-                    nextTranslateX =
+-                        nextTranslateX -
+-                            (nextTranslateX - leftBound) * OUT_BOUND_MULTIPLIER;
+-                }
+-                if (nextTranslateX < rightBound) {
+-                    nextTranslateX =
+-                        nextTranslateX -
+-                            (nextTranslateX - rightBound) * OUT_BOUND_MULTIPLIER;
+-                }
+-                if (nextTranslateY > topBound) {
+-                    nextTranslateY =
+-                        nextTranslateY - (nextTranslateY - topBound) * OUT_BOUND_MULTIPLIER;
+-                }
+-                if (nextTranslateY < bottomBound) {
+-                    nextTranslateY =
+-                        nextTranslateY -
+-                            (nextTranslateY - bottomBound) * OUT_BOUND_MULTIPLIER;
+-                }
+-                if (fitsScreenByWidth()) {
+-                    nextTranslateX = x;
+-                }
+-                if (fitsScreenByHeight()) {
+-                    nextTranslateY = y;
+-                }
+-                translateValue.x.setValue(nextTranslateX);
+-                translateValue.y.setValue(nextTranslateY);
+-                tmpTranslate = { x: nextTranslateX, y: nextTranslateY };
+-            }
+-        },
+-        onRelease: () => {
+-            cancelLongPressHandle();
+-            if (isDoubleTapPerformed) {
+-                isDoubleTapPerformed = false;
+-            }
+-            if (tmpScale > 0) {
+-                if (tmpScale < initialScale || tmpScale > SCALE_MAX) {
+-                    tmpScale = tmpScale < initialScale ? initialScale : SCALE_MAX;
+-                    Animated.timing(scaleValue, {
+-                        toValue: tmpScale,
+-                        duration: 100,
+-                        useNativeDriver: true,
+-                    }).start();
+-                }
+-                currentScale = tmpScale;
+-                tmpScale = 0;
+-            }
+-            if (tmpTranslate) {
+-                const { x, y } = tmpTranslate;
+-                const [topBound, leftBound, bottomBound, rightBound] = getBounds(currentScale);
+-                let nextTranslateX = x;
+-                let nextTranslateY = y;
+-                if (!fitsScreenByWidth()) {
+-                    if (nextTranslateX > leftBound) {
+-                        nextTranslateX = leftBound;
+-                    }
+-                    else if (nextTranslateX < rightBound) {
+-                        nextTranslateX = rightBound;
+-                    }
+-                }
+-                if (!fitsScreenByHeight()) {
+-                    if (nextTranslateY > topBound) {
+-                        nextTranslateY = topBound;
+-                    }
+-                    else if (nextTranslateY < bottomBound) {
+-                        nextTranslateY = bottomBound;
+-                    }
+-                }
+-                Animated.parallel([
+-                    Animated.timing(translateValue.x, {
+-                        toValue: nextTranslateX,
+-                        duration: 100,
+-                        useNativeDriver: true,
+-                    }),
+-                    Animated.timing(translateValue.y, {
+-                        toValue: nextTranslateY,
+-                        duration: 100,
+-                        useNativeDriver: true,
+-                    }),
+-                ]).start();
+-                currentTranslate = { x: nextTranslateX, y: nextTranslateY };
+-                tmpTranslate = null;
+-            }
+-        },
++      onGrant: (_, gestureState) => {
++        state.numberInitialTouches = gestureState.numberActiveTouches;
++        reportMultiTouch(gestureState.numberActiveTouches > 1);
++        if (gestureState.numberActiveTouches > 1) {
++          return;
++        }
++        state.longPressHandle = setTimeout(() => {
++          if (typeof onLongPressRef.current === 'function') {
++            onLongPressRef.current();
++          }
++        }, delayLongPressRef.current);
++      },
++      onStart: (event, gestureState) => {
++        state.initialTouches = event.nativeEvent.touches;
++        state.numberInitialTouches = gestureState.numberActiveTouches;
++        reportMultiTouch(gestureState.numberActiveTouches > 1);
++        if (gestureState.numberActiveTouches > 1) {
++          return;
++        }
++
++        const tapTS = Date.now();
++        // Handle double tap event by calculating diff between first and second taps timestamps
++        state.isDoubleTapPerformed = Boolean(
++          state.lastTapTS && tapTS - state.lastTapTS < DOUBLE_TAP_DELAY,
++        );
++
++        if (doubleTapEnabledRef.current && state.isDoubleTapPerformed) {
++          // Compared on scale, not on translate. Upstream tested
++          // `currentTranslate.x !== initialTranslate.x`, which is still equal when the
++          // zoom was centred or when bounds clamped it back — so the second double tap
++          // zoomed in again instead of resetting, and the image stayed stuck zoomed.
++          const isScaled = state.currentScale !== state.initialScale;
++          const {pageX: touchX, pageY: touchY} = event.nativeEvent.touches[0];
++          const targetScale = SCALE_MAX;
++          const nextScale = isScaled ? state.initialScale : targetScale;
++          const nextTranslate = isScaled
++            ? state.initialTranslate
++            : getTranslateInBounds(
++                {
++                  x:
++                    state.initialTranslate.x +
++                    (SCREEN_WIDTH / 2 - touchX) *
++                      (targetScale / state.currentScale),
++                  y:
++                    state.initialTranslate.y +
++                    (SCREEN_HEIGHT / 2 - touchY) *
++                      (targetScale / state.currentScale),
++                },
++                targetScale,
++              );
++
++          reportZoom(state, onZoomRef.current, !isScaled);
++
++          // Committed before the animation rather than in its completion callback, so a
++          // second double tap during the 300ms transition still reads the new state.
++          state.currentScale = nextScale;
++          state.currentTranslate = nextTranslate;
++
++          Animated.parallel(
++            [
++              Animated.timing(translateValue.x, {
++                toValue: nextTranslate.x,
++                duration: 300,
++                useNativeDriver: true,
++              }),
++              Animated.timing(translateValue.y, {
++                toValue: nextTranslate.y,
++                duration: 300,
++                useNativeDriver: true,
++              }),
++              Animated.timing(scaleValue, {
++                toValue: nextScale,
++                duration: 300,
++                useNativeDriver: true,
++              }),
++            ],
++            {stopTogether: false},
++          ).start();
++
++          state.lastTapTS = null;
++        } else {
++          state.lastTapTS = Date.now();
++        }
++      },
++      onMove: (event, gestureState) => {
++        const {dx, dy} = gestureState;
++
++        if (
++          Math.abs(dx) >= MEANINGFUL_SHIFT ||
++          Math.abs(dy) >= MEANINGFUL_SHIFT
++        ) {
++          cancelLongPressHandle();
++        }
++        if (gestureState.numberActiveTouches > 1) {
++          reportMultiTouch(true);
++        }
++        // Don't need to handle move because double tap in progress (was handled in onStart)
++        if (doubleTapEnabledRef.current && state.isDoubleTapPerformed) {
++          cancelLongPressHandle();
++          return;
++        }
++
++        if (
++          state.numberInitialTouches === 1 &&
++          gestureState.numberActiveTouches === 2
++        ) {
++          state.numberInitialTouches = 2;
++          state.initialTouches = event.nativeEvent.touches;
++        }
++
++        const isTapGesture =
++          state.numberInitialTouches === 1 &&
++          gestureState.numberActiveTouches === 1;
++        const isPinchGesture =
++          state.numberInitialTouches === 2 &&
++          gestureState.numberActiveTouches === 2;
++
++        if (isPinchGesture) {
++          cancelLongPressHandle();
++
++          const initialDistance = getDistanceBetweenTouches(
++            state.initialTouches,
++          );
++          const currentDistance = getDistanceBetweenTouches(
++            event.nativeEvent.touches,
++          );
++
++          let nextScale =
++            (currentDistance / initialDistance) * state.currentScale;
++
++          /**
++           * In case image is scaling smaller than initial size ->
++           * slow down this transition by applying OUT_BOUND_MULTIPLIER
++           */
++          if (nextScale < state.initialScale) {
++            nextScale =
++              nextScale +
++              (state.initialScale - nextScale) * OUT_BOUND_MULTIPLIER;
++          }
++
++          /**
++           * In case image is scaling down -> move it in direction of initial position
++           */
++          if (
++            state.currentScale > state.initialScale &&
++            state.currentScale > nextScale
++          ) {
++            const k =
++              (state.currentScale - state.initialScale) /
++              (state.currentScale - nextScale);
++            const nextTranslateX =
++              nextScale < state.initialScale
++                ? state.initialTranslate.x
++                : state.currentTranslate.x -
++                  (state.currentTranslate.x - state.initialTranslate.x) / k;
++            const nextTranslateY =
++              nextScale < state.initialScale
++                ? state.initialTranslate.y
++                : state.currentTranslate.y -
++                  (state.currentTranslate.y - state.initialTranslate.y) / k;
++
++            translateValue.x.setValue(nextTranslateX);
++            translateValue.y.setValue(nextTranslateY);
++            state.tmpTranslate = {x: nextTranslateX, y: nextTranslateY};
++          }
++
++          scaleValue.setValue(nextScale);
++          state.tmpScale = nextScale;
++        }
++
++        if (isTapGesture && state.currentScale > state.initialScale) {
++          const {x, y} = state.currentTranslate;
++          const [topBound, leftBound, bottomBound, rightBound] = getBounds(
++            state.currentScale,
++          );
++
++          let nextTranslateX = x + dx;
++          let nextTranslateY = y + dy;
++
++          if (nextTranslateX > leftBound) {
++            nextTranslateX =
++              nextTranslateX -
++              (nextTranslateX - leftBound) * OUT_BOUND_MULTIPLIER;
++          }
++
++          if (nextTranslateX < rightBound) {
++            nextTranslateX =
++              nextTranslateX -
++              (nextTranslateX - rightBound) * OUT_BOUND_MULTIPLIER;
++          }
++
++          if (nextTranslateY > topBound) {
++            nextTranslateY =
++              nextTranslateY -
++              (nextTranslateY - topBound) * OUT_BOUND_MULTIPLIER;
++          }
++
++          if (nextTranslateY < bottomBound) {
++            nextTranslateY =
++              nextTranslateY -
++              (nextTranslateY - bottomBound) * OUT_BOUND_MULTIPLIER;
++          }
++
++          if (fitsScreenByWidth()) {
++            nextTranslateX = x;
++          }
++
++          if (fitsScreenByHeight()) {
++            nextTranslateY = y;
++          }
++
++          translateValue.x.setValue(nextTranslateX);
++          translateValue.y.setValue(nextTranslateY);
++          state.tmpTranslate = {x: nextTranslateX, y: nextTranslateY};
++        }
++      },
++      onRelease: settle,
++      onTerminate: settle,
+     };
+-    const panResponder = useMemo(() => createPanResponder(handlers), [handlers]);
+-    return [panResponder.panHandlers, scaleValue, translateValue];
++
++    return createPanResponder(handlers);
++  }, [state]);
++
++  return [panResponder.panHandlers, state.scaleValue, state.translateValue];
+ };
++
+ export default usePanResponder;

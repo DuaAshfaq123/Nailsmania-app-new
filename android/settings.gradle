@@ -1,0 +1,13 @@
+pluginManagement { includeBuild("../node_modules/@react-native/gradle-plugin") }
+plugins { id("com.facebook.react.settings") }
+extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
+rootProject.name = 'mehandi724xone'
+include ':app'
+// AGP's AssetPackPreBundleTask only copies files whose path contains
+// "<projectName>/src/main/assets". The Play pack names are thumbs/full, so the
+// Gradle project names must match the folder names (not catalogThumbs/catalogFull).
+include ':thumbs'
+project(':thumbs').projectDir = file('assetpacks/thumbs')
+include ':full'
+project(':full').projectDir = file('assetpacks/full')
+includeBuild('../node_modules/@react-native/gradle-plugin')

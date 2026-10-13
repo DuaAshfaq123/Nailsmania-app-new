@@ -1,0 +1,48 @@
+<!--
+  Notification small icon.
+
+  Android draws the small icon as a MASK: every non-transparent pixel is repainted in a
+  single system colour (or the `color` passed with the notification) and only alpha survives.
+  A full-colour bitmap therefore renders as a solid white blob, which is exactly why
+  @mipmap/ic_launcher is NOT used here — this is a purpose-drawn silhouette instead.
+
+  Design: an eight-petal mehndi lotus with a ringed centre, the motif that anchors most palm
+  designs. Chosen for legibility at status-bar size (Android renders the small icon at
+  roughly 18-24dp) — bold petals and a large solid core stay readable when everything else
+  would turn to mush. Drawn in pure white on transparent inside the standard 24dp viewport
+  with a ~2dp safe margin.
+
+  Vector rather than PNG so one file covers every density with no aliasing.
+
+  Referenced from JS as `smallIcon: 'ic_notification'` in
+  src/services/notifications/notificationService.js — that is the resource NAME, not a path,
+  so renaming this file breaks the notification silently. Keep the two in step.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Eight radiating petals, 45 degrees apart. -->
+    <path android:fillColor="#FFFFFFFF" android:pathData="M12.00,2.20C9.30,5.32 10.84,8.81 12.00,9.40C13.16,8.81 14.70,5.32 12.00,2.20Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M18.93,5.07C14.81,5.37 13.44,8.92 13.84,10.16C15.08,10.56 18.63,9.19 18.93,5.07Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M21.80,12.00C18.68,9.30 15.19,10.84 14.60,12.00C15.19,13.16 18.68,14.70 21.80,12.00Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M18.93,18.93C18.63,14.81 15.08,13.44 13.84,13.84C13.44,15.08 14.81,18.63 18.93,18.93Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M12.00,21.80C14.70,18.68 13.16,15.19 12.00,14.60C10.84,15.19 9.30,18.68 12.00,21.80Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M5.07,18.93C9.19,18.63 10.56,15.08 10.16,13.84C8.92,13.44 5.37,14.81 5.07,18.93Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M2.20,12.00C5.32,14.70 8.81,13.16 9.40,12.00C8.81,10.84 5.32,9.30 2.20,12.00Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M5.07,5.07C5.37,9.19 8.92,10.56 10.16,10.16C10.56,8.92 9.19,5.37 5.07,5.07Z" />
+
+    <!-- Centre ring. evenOdd is what punches the hole; with the default nonZero fill the
+         inner circle would be filled in and the ring would read as a plain disc. -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M12,12m-4.3,0a4.3,4.3 0,1 0,8.6 0a4.3,4.3 0,1 0,-8.6 0M12,12m-3.1,0a3.1,3.1 0,1 0,6.2 0a3.1,3.1 0,1 0,-6.2 0" />
+
+    <!-- Solid core inside the ring. -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,12m-1.7,0a1.7,1.7 0,1 0,3.4 0a1.7,1.7 0,1 0,-3.4 0" />
+</vector>

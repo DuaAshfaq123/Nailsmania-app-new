@@ -1,0 +1,11 @@
+apply plugin: 'com.android.asset-pack'
+
+assetPack {
+    packName = 'full'
+    dynamicDelivery {
+        deliveryType = 'on-demand'
+    }
+}
+
+ext.catalogPackSource = 'full'
+apply from: rootProject.file('gradle/catalog-pack-assets.gradle')

@@ -1,0 +1,9 @@
+
+{
+  "name": "NailsMania",
+  "displayName": "NailsMania",
+  "react-native-google-mobile-ads": {
+    "ios_app_id": "ca-app-pub-2322596908282248~4253673376",
+    "delay_app_measurement_init": true
+  }
+}

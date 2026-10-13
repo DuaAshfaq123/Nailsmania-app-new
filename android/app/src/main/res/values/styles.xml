@@ -1,0 +1,20 @@
+<resources>
+  <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
+  </style>
+
+  <!--
+    Native splash until BootSplash.hide().
+    - Logo uses the silent (transparent) icon so Android 12's mandatory circular system
+      splash does not show a cropped henna circle that then "pops" to full size.
+    - No bootSplashBrand: Android stretches branding images; tagline lives inside
+      bootsplash_fullscreen (see drawable/compat_splash_screen.xml).
+  -->
+  <style name="BootTheme" parent="Theme.BootSplash">
+    <item name="bootSplashBackground">@color/bootsplash_background</item>
+    <item name="bootSplashLogo">@drawable/bootsplash_silent_icon</item>
+    <item name="postBootSplashTheme">@style/AppTheme</item>
+    <item name="darkContentBarsStyle">false</item>
+    <item name="android:windowBackground">@drawable/compat_splash_screen</item>
+  </style>
+</resources>
